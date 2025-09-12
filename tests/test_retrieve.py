@@ -14,6 +14,7 @@ from pathlib import Path
 from sqlalchemy import select, delete
 
 from app.core.tables import Case, KBFragment, Session, TelemetryTurn
+from app.core.db import AsyncSessionLocal
 from app.orchestrator.nodes.retrieve import retrieve
 from app.cli.case_loader import load_case_from_file
 
@@ -88,11 +89,11 @@ async def setup_test_data(session):
                 consistency_keys={},
                 embedding=None
             )
-        ]
-        
-        session.add_all(fragments)
-        await session.commit()
-        
+    ]
+    
+    session.add_all(fragments)
+    await session.commit()
+    
     return case_id
 
 
@@ -173,7 +174,7 @@ async def test_retrieve_trust_05_returns_gated_fragment(session):
 
 
 @pytest.mark.asyncio
-async def test_retrieve_empty_topics_returns_available_not_hidden():
+async def test_retrieve_empty_topics_returns_available_not_hidden(session):
     """
     Тест: при пустых topics возвращает любые доступные фрагменты, но не hidden
     """
@@ -202,7 +203,7 @@ async def test_retrieve_empty_topics_returns_available_not_hidden():
 
 
 @pytest.mark.asyncio
-async def test_availability_filtering_excludes_hidden():
+async def test_availability_filtering_excludes_hidden(session):
     """
     Тест фильтрации по availability - hidden фрагменты исключаются
     """
@@ -229,7 +230,7 @@ async def test_availability_filtering_excludes_hidden():
 
 
 @pytest.mark.asyncio
-async def test_top_k_limit():
+async def test_top_k_limit(session):
     """
     Тест ограничения top_k
     """
@@ -255,7 +256,7 @@ async def test_top_k_limit():
 
 
 @pytest.mark.asyncio
-async def test_high_trust_threshold_gated_access():
+async def test_high_trust_threshold_gated_access(session):
     """
     Тест доступа к gated фрагменту с высоким порогом trust (0.8)
     """
@@ -325,7 +326,7 @@ async def test_nonexistent_case_id():
 
 
 @pytest.mark.asyncio
-async def test_return_data_structure():
+async def test_return_data_structure(session):
     """
     Тест структуры возвращаемых данных {id, type, text, metadata}
     """

@@ -1,5 +1,6 @@
 import os
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.pool import NullPool
 from httpx import AsyncClient, ASGITransport
@@ -11,7 +12,7 @@ from app.core.settings import settings
 DB_URL = os.environ.get("TEST_DATABASE_URL", settings.database_url)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def engine():
     """Create async engine with NullPool for each test"""
     eng = create_async_engine(
@@ -26,7 +27,7 @@ async def engine():
         await eng.dispose()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def session(engine):
     """Create async session for each test"""
     Session = async_sessionmaker(engine, expire_on_commit=False)
@@ -34,7 +35,7 @@ async def session(engine):
         yield s
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client():
     """Create FastAPI test client with proper ASGI transport"""
     async with AsyncClient(
