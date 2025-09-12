@@ -34,7 +34,7 @@ class KBFragment(Base):
     fragment_metadata: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB)
     availability: Mapped[str] = mapped_column(String(100))
     consistency_keys: Mapped[dict[str, Any]] = mapped_column(JSONB)
-    embedding: Mapped[Any] = mapped_column(Vector(1024))
+    embedding: Mapped[Any] = mapped_column(Vector(1024), nullable=True)
     
     # Relationships
     case = relationship("Case", back_populates="kb_fragments")

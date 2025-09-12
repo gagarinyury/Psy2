@@ -16,7 +16,20 @@ make test
 curl -s localhost:8000/health
 ```
 
-## Endpoints
+## CLI Tools
+
+### Case Loader
+Load cases and knowledge base fragments from JSON files:
+
+```bash
+# Load demo case into database
+poetry run python -m app.cli.case_loader load app/examples/demo_case.json
+
+# Alternative syntax
+python -m app.cli.case_loader load app/examples/demo_case.json
+```
+
+## API Endpoints
 
 - `GET /health` - Health check
 - `POST /case` - Create case with CaseTruth
@@ -30,3 +43,15 @@ curl -s localhost:8000/health
 - Grafana: http://localhost:3000 (admin/admin)
 - PostgreSQL: localhost:5432
 - Redis: localhost:6379
+
+## Development
+
+```bash
+# Run all tests
+pytest -q
+
+# Run specific test modules
+pytest -q tests/test_health.py
+pytest -q tests/test_case_session_turn.py  
+pytest -q tests/test_cli_case_loader.py
+```

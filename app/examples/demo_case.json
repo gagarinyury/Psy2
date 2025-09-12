@@ -1,0 +1,42 @@
+{
+  "case": {
+    "version": "1.0",
+    "case_truth": {
+      "dx_target": ["MDD"],
+      "ddx": {"MDD": 0.6, "GAD": 0.3, "AUD": 0.1},
+      "hidden_facts": ["эпизод в 2016", "семейная история депрессии"],
+      "red_flags": ["суицидальные мысли"],
+      "trajectories": ["улучшение при поддержке"]
+    },
+    "policies": {"disclosure_rules": {}, "distortion_rules": {}, "risk_protocol": {}, "style_profile": {}}
+  },
+  "kb": [
+    {
+      "id": "kb1",
+      "type": "bio",
+      "text": "Родился в 1989, работает в ИТ.",
+      "metadata": {
+        "topic": "background",
+        "tags": ["работа","семья"],
+        "emotion_label": "neutral",
+        "availability": "public",
+        "disclosure_cost": 0,
+        "consistency_keys": ["birth_year:1989"]
+      }
+    },
+    {
+      "id": "kb2",
+      "type": "symptom", 
+      "text": "Нарушение сна последние 3 месяца.",
+      "metadata": {
+        "topic": "sleep",
+        "tags": ["insomnia"],
+        "emotion_label": "sad",
+        "availability": "gated",
+        "disclosure_cost": 2,
+        "disclosure_requirements": {"trust_ge": 0.4},
+        "consistency_keys": ["symptom:sleep"]
+      }
+    }
+  ]
+}

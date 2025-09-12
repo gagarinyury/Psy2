@@ -41,7 +41,7 @@ def upgrade() -> None:
         sa.Column('metadata', postgresql.JSONB(), nullable=False),
         sa.Column('availability', sa.String(length=100), nullable=False),
         sa.Column('consistency_keys', postgresql.JSONB(), nullable=False),
-        sa.Column('embedding', Vector(1024), nullable=False),
+        sa.Column('embedding', Vector(1024), nullable=True),
         sa.ForeignKeyConstraint(['case_id'], ['cases.id'], ),
         sa.PrimaryKeyConstraint('id')
     )

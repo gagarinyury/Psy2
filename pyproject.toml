@@ -26,6 +26,7 @@ dependencies = [
     "pytest==8.3.2",
     "hypothesis==6.112.3",
     "greenlet==3.2.4",
+    "click==8.1.7",
 ]
 
 [tool.pytest.ini_options]
