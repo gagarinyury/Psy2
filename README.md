@@ -29,6 +29,16 @@ poetry run python -m app.cli.case_loader load app/examples/demo_case.json
 python -m app.cli.case_loader load app/examples/demo_case.json
 ```
 
+### Normalize Node
+Process therapist utterances to extract intent, topics, and risk flags:
+
+```python
+from app.orchestrator.nodes.normalize import normalize
+
+result = normalize("Как вы спите последние недели?", {})
+# Returns: {'intent': 'clarify', 'topics': ['sleep'], 'risk_flags': [], 'last_turn_summary': '...'}
+```
+
 ## API Endpoints
 
 - `GET /health` - Health check
@@ -54,4 +64,5 @@ pytest -q
 pytest -q tests/test_health.py
 pytest -q tests/test_case_session_turn.py  
 pytest -q tests/test_cli_case_loader.py
+pytest -q tests/test_normalize.py
 ```
