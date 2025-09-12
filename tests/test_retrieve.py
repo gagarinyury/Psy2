@@ -13,35 +13,32 @@ import uuid
 from pathlib import Path
 from sqlalchemy import select, delete
 
-from app.core.db import AsyncSessionLocal
 from app.core.tables import Case, KBFragment, Session, TelemetryTurn
 from app.orchestrator.nodes.retrieve import retrieve
 from app.cli.case_loader import load_case_from_file
 
 
-async def setup_test_data():
+async def setup_test_data(session):
     """Создает тестовые данные для каждого теста"""
     # Очистка
-    async with AsyncSessionLocal() as session:
-        await session.execute(delete(TelemetryTurn))
-        await session.execute(delete(Session))  
-        await session.execute(delete(KBFragment))
-        await session.execute(delete(Case))
-        await session.commit()
+    await session.execute(delete(TelemetryTurn))
+    await session.execute(delete(Session))  
+    await session.execute(delete(KBFragment))
+    await session.execute(delete(Case))
+    await session.commit()
     
     # Загрузка demo_case.json
     demo_case_path = str(Path(__file__).parent.parent / "app" / "examples" / "demo_case.json")
     await load_case_from_file(demo_case_path)
     
     # Получение case_id
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(select(Case).order_by(Case.created_at.desc()).limit(1))
-        case = result.scalars().first()
-        case_id = str(case.id) if case else None
-        case_uuid = uuid.UUID(case_id)
+    result = await session.execute(select(Case).order_by(Case.created_at.desc()).limit(1))
+    case = result.scalars().first()
+    case_id = str(case.id) if case else None
+    case_uuid = uuid.UUID(case_id)
         
-        # Добавление дополнительных фрагментов
-        fragments = [
+    # Добавление дополнительных фрагментов
+    fragments = [
             KBFragment(
                 id=uuid.uuid4(),
                 case_id=case_uuid,
@@ -110,11 +107,11 @@ async def cleanup_test_data():
 
 
 @pytest.mark.asyncio
-async def test_retrieve_trust_03_returns_only_public():
+async def test_retrieve_trust_03_returns_only_public(session):
     """
     Тест: при trust=0.3 должен вернуться только public фрагмент из примера
     """
-    case_id = await setup_test_data()
+    case_id = await setup_test_data(session)
     
     try:
         session_state = {"trust": 0.3, "access_level": "low", "risk_status": "safe"}
@@ -141,11 +138,11 @@ async def test_retrieve_trust_03_returns_only_public():
 
 
 @pytest.mark.asyncio 
-async def test_retrieve_trust_05_returns_gated_fragment():
+async def test_retrieve_trust_05_returns_gated_fragment(session):
     """
     Тест: при trust=0.5 может вернуться и gated фрагмент с trust_ge=0.4
     """
-    case_id = await setup_test_data()
+    case_id = await setup_test_data(session)
     
     try:
         session_state = {"trust": 0.5, "access_level": "medium", "risk_status": "safe"}
@@ -180,7 +177,7 @@ async def test_retrieve_empty_topics_returns_available_not_hidden():
     """
     Тест: при пустых topics возвращает любые доступные фрагменты, но не hidden
     """
-    case_id = await setup_test_data()
+    case_id = await setup_test_data(session)
     
     try:
         session_state = {"trust": 0.5, "access_level": "medium", "risk_status": "safe"}
@@ -209,7 +206,7 @@ async def test_availability_filtering_excludes_hidden():
     """
     Тест фильтрации по availability - hidden фрагменты исключаются
     """
-    case_id = await setup_test_data()
+    case_id = await setup_test_data(session)
     
     try:
         session_state = {"trust": 1.0, "access_level": "high", "risk_status": "safe"}
@@ -236,7 +233,7 @@ async def test_top_k_limit():
     """
     Тест ограничения top_k
     """
-    case_id = await setup_test_data()
+    case_id = await setup_test_data(session)
     
     try:
         session_state = {"trust": 0.8, "access_level": "high", "risk_status": "safe"}
@@ -262,7 +259,7 @@ async def test_high_trust_threshold_gated_access():
     """
     Тест доступа к gated фрагменту с высоким порогом trust (0.8)
     """
-    case_id = await setup_test_data()
+    case_id = await setup_test_data(session)
     
     try:
         # Тест с недостаточным trust
@@ -332,7 +329,7 @@ async def test_return_data_structure():
     """
     Тест структуры возвращаемых данных {id, type, text, metadata}
     """
-    case_id = await setup_test_data()
+    case_id = await setup_test_data(session)
     
     try:
         session_state = {"trust": 0.5, "access_level": "medium", "risk_status": "safe"}
