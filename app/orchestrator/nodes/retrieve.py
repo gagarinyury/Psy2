@@ -80,13 +80,8 @@ async def retrieve(
             
             # Apply topic filter
             if topics:
-                # Filter by topics
-                topic_conditions = []
-                for topic in topics:
-                    topic_conditions.append(
-                        text("metadata->>'topic' = :topic").bindparam(topic=topic)
-                    )
-                query = query.where(or_(*topic_conditions))
+                # Filter by topics using ORM
+                query = query.where(KBFragment.fragment_metadata['topic'].astext.in_(topics))
             
             # Execute query with trust level parameter
             result = await db_session.execute(
