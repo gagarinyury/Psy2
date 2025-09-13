@@ -57,7 +57,7 @@ async def test_reason_llm_success():
                                 "I've been feeling down lately",
                                 "Sleep has been difficult",
                             ],
-                            "style_directives": {"tempo": "calm", "length": "medium"},
+                            "style_directives": {"tempo": "medium", "length": "medium"},
                             "state_updates": {
                                 "trust_delta": 0.1,
                                 "fatigue_delta": 0.05,
@@ -90,7 +90,7 @@ async def test_reason_llm_success():
             "I've been feeling down lately",
             "Sleep has been difficult",
         ]
-        assert result["style_directives"]["tempo"] == "calm"
+        assert result["style_directives"]["tempo"] == "medium"
         assert result["style_directives"]["length"] == "medium"
         assert result["state_updates"]["trust_delta"] == 0.1
         assert result["state_updates"]["fatigue_delta"] == 0.05
