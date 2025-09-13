@@ -114,7 +114,9 @@ async def reason_llm(
             logger.error("Empty response from DeepSeek API")
             return _create_fallback_response(case_truth, session_state)
 
-        content = response["choices"][0]["message"]["content"]
+        message = response["choices"][0]["message"]
+        # DeepSeek reasoner model uses 'reasoning_content', regular models use 'content'
+        content = message.get("reasoning_content") or message.get("content", "")
 
         # Parse JSON response
         try:

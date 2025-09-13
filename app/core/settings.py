@@ -28,8 +28,8 @@ class Settings(BaseSettings):
     # DeepSeek API Settings
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com/v1"
     DEEPSEEK_API_KEY: SecretStr | None = None
-    DEEPSEEK_REASONING_MODEL: str = "deepseek-reasoner-3.1"
-    DEEPSEEK_BASE_MODEL: str = "deepseek-chat-3.1"
+    DEEPSEEK_REASONING_MODEL: str = "deepseek-chat"
+    DEEPSEEK_BASE_MODEL: str = "deepseek-chat"
     DEEPSEEK_TIMEOUT_S: float = 6.0
 
     # Feature flags for LLM nodes
