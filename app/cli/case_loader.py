@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import AsyncSessionLocal
 from app.core.settings import settings
 from app.core.tables import Case, KBFragment
+from app.core.policies import Policies
 from app.infra.logging import setup_logging, get_logger
 
 # Setup logging
@@ -193,6 +194,14 @@ async def load_case_from_file(file_path: str) -> str:
     for field in required_case_fields:
         if field not in case_data:
             raise CaseLoaderError(f"Missing required case field: {field}")
+    
+    # Валидируем policies через Pydantic модель
+    try:
+        Policies.model_validate(case_data['policies'])
+        logger.debug("Policies validation passed")
+    except Exception as e:
+        logger.error("Policies validation failed", error=str(e))
+        raise CaseLoaderError(f"Invalid policies structure: {e}")
     
     logger.info("JSON file loaded and validated", 
                 version=case_data.get('version'),

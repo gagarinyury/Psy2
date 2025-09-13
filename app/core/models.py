@@ -1,6 +1,8 @@
 from typing import Any, Optional
 from pydantic import BaseModel
 
+from app.core.policies import Policies
+
 
 class CaseTruth(BaseModel):
     dx_target: list[str]
@@ -37,7 +39,7 @@ class TurnResponse(BaseModel):
 # API Request/Response models
 class CaseRequest(BaseModel):
     case_truth: CaseTruth
-    policies: dict[str, Any] = {}
+    policies: Policies
 
 
 class CaseResponse(BaseModel):

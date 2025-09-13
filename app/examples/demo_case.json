@@ -8,7 +8,27 @@
       "red_flags": ["суицидальные мысли"],
       "trajectories": ["улучшение при поддержке"]
     },
-    "policies": {"disclosure_rules": {}, "distortion_rules": {}, "risk_protocol": {}, "style_profile": {}}
+    "policies": {
+      "disclosure_rules": {
+        "full_on_valid_question": true,
+        "partial_if_low_trust": true,
+        "min_trust_for_gated": 0.4
+      },
+      "distortion_rules": {
+        "enabled": true,
+        "by_defense": {}
+      },
+      "risk_protocol": {
+        "trigger_keywords": ["суицид", "убить себя", "не хочу жить"],
+        "response_style": "stable",
+        "lock_topics": []
+      },
+      "style_profile": {
+        "register": "colloquial",
+        "tempo": "medium",
+        "length": "short"
+      }
+    }
   },
   "kb": [
     {
