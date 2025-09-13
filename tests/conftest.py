@@ -2,7 +2,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient, ASGITransport
 from app.main import app as fastapi_app
-from app.core.db import engine, AsyncSessionLocal
+from app.core.db import engine
 
 
 @pytest.fixture(scope="session")
@@ -23,10 +23,3 @@ async def client(app: FastAPI):
 
     # Clean up any lingering database connections after each test
     await engine.dispose()
-
-
-@pytest.fixture(scope="function")
-async def db():
-    """Database session fixture for direct DB tests"""
-    async with AsyncSessionLocal() as session:
-        yield session
