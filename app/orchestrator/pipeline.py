@@ -11,16 +11,61 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.models import TurnRequest, TurnResponse
-from app.core.tables import Session, TelemetryTurn
+from app.core.tables import Session, TelemetryTurn, Case
 from app.orchestrator.nodes.normalize import normalize
 from app.orchestrator.nodes.retrieve import retrieve
+from app.orchestrator.nodes.reason import reason
+from app.orchestrator.nodes.guard import guard
 
 logger = logging.getLogger(__name__)
 
 
+async def get_case_truth(db: AsyncSession, case_id: str) -> dict:
+    """
+    Retrieve case truth from database.
+
+    Args:
+        db: Database session
+        case_id: UUID string of the case
+
+    Returns:
+        dict: Case truth data
+    """
+    case_query = select(Case).where(Case.id == case_id)
+    case_result = await db.execute(case_query)
+    case = case_result.scalar_one_or_none()
+
+    if not case:
+        raise ValueError(f"Case {case_id} not found")
+
+    return case.case_truth
+
+
+async def get_policies(db: AsyncSession, case_id: str) -> dict:
+    """
+    Retrieve policies from database.
+
+    Args:
+        db: Database session
+        case_id: UUID string of the case
+
+    Returns:
+        dict: Policies data
+    """
+    case_query = select(Case).where(Case.id == case_id)
+    case_result = await db.execute(case_query)
+    case = case_result.scalar_one_or_none()
+
+    if not case:
+        raise ValueError(f"Case {case_id} not found")
+
+    return case.policies
+
+
 async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
     """
-    Process a therapy session turn through the orchestration pipeline.
+    Process a therapy session turn through the full orchestration pipeline.
+    Pipeline: normalize → retrieve → reason → guard
 
     Args:
         request: TurnRequest containing therapist utterance, session state, and case_id
@@ -42,42 +87,47 @@ async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
         if not session:
             raise ValueError(f"Session {request.session_id} not found")
 
-        # Convert session state to dict for normalize and retrieve
+        # Convert session state to dict for pipeline nodes
         session_state_dict = request.session_state.model_dump()
 
         # Step 1: Normalize therapist utterance
-        normalize_result = normalize(request.therapist_utterance, session_state_dict)
-        intent = normalize_result["intent"]
-        topics = normalize_result["topics"]
-        risk_flags = normalize_result["risk_flags"]
-        last_turn_summary = normalize_result["last_turn_summary"]
+        n = normalize(request.therapist_utterance, session_state_dict)
 
         # Step 2: Retrieve relevant knowledge fragments
-        candidates = await retrieve(
+        cands = await retrieve(
             db=db,
             case_id=request.case_id,
-            intent=intent,
-            topics=topics,
+            intent=n["intent"],
+            topics=n["topics"],
             session_state_compact=session_state_dict,
         )
 
-        # Step 3: Form TurnResponse
-        # Patient reply format: "Echo: {intent}, candidates={N}"
-        patient_reply = f"Echo: {intent}, candidates={len(candidates)}"
+        # Step 3: Reason - get case_truth and policies from DB
+        case_truth = await get_case_truth(db, request.case_id)
+        policies = await get_policies(db, request.case_id)
+        r = reason(case_truth, session_state_dict, cands, policies)
 
-        # State updates - update last_turn_summary from normalize
-        state_updates = {"last_turn_summary": last_turn_summary}
+        # Step 4: Guard - apply risk filtering
+        g = guard(r, policies, n["risk_flags"])
 
-        # Extract fragment IDs for used_fragments
-        used_fragments = [candidate["id"] for candidate in candidates]
+        # Step 5: Form response
+        patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status']=='acute' else 'none'}"
 
-        # Determine risk status
-        risk_status = "acute" if risk_flags else "none"
+        # State updates - combine from reason and normalize
+        state_updates = r["state_updates"] | {
+            "last_turn_summary": n["last_turn_summary"]
+        }
 
-        # Create eval markers
-        eval_markers = {"intent": intent}
+        # Fragment IDs from reason telemetry
+        used_fragments = r["telemetry"].get("chosen_ids", [])
 
-        # Step 4: Record telemetry
+        # Risk status from guard
+        risk_status = g["risk_status"]
+
+        # Eval markers - include topics for enhanced evaluation
+        eval_markers = {"intent": n["intent"], "topics": n["topics"]}
+
+        # Step 6: Record telemetry
         await _record_telemetry(
             db=db,
             session_id=request.session_id,
@@ -94,15 +144,16 @@ async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
             eval_markers=eval_markers,
         )
 
-    except ValueError as e:
-        logger.error(f"Validation error in run_turn: {e}")
-        raise
-    except SQLAlchemyError as e:
-        logger.exception(f"Database error in run_turn: {e}")
-        raise
     except Exception as e:
-        logger.exception(f"Unexpected error in run_turn: {e}")
-        raise
+        logger.error(f"Pipeline error: {e}")
+        # Safe fallback response
+        return TurnResponse(
+            patient_reply="safe-fallback",
+            state_updates={},
+            used_fragments=[],
+            risk_status="none",
+            eval_markers={},
+        )
 
 
 async def _record_telemetry(

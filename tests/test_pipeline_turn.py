@@ -73,8 +73,8 @@ async def test_pipeline_turn_integration(client):
     # Validate Test 1 requirements
     assert "patient_reply" in turn_response
     assert (
-        "Echo:" in turn_response["patient_reply"]
-    ), "patient_reply should contain 'Echo:'"
+        "Plan:" in turn_response["patient_reply"]
+    ), "patient_reply should contain 'Plan:'"
     assert (
         turn_response["risk_status"] == "none"
     ), f"Expected risk_status 'none', got {turn_response['risk_status']}"
@@ -189,8 +189,8 @@ async def test_pipeline_turn_sleep_scenario(client):
 
     # Detailed validation
     assert data["patient_reply"].startswith(
-        "Echo:"
-    ), "patient_reply should start with 'Echo:'"
+        "Plan:"
+    ), "patient_reply should start with 'Plan:'"
     assert data["risk_status"] == "none"
     assert isinstance(data["used_fragments"], list)
     assert isinstance(data["state_updates"], dict)
