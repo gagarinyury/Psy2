@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from app.llm.deepseek_client import DeepSeekClient
+from app.llm.json_parse import parse_llm_json, normalize_reason_payload
+from app.llm.validate import validate_reason_payload
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,9 @@ def _truncate_candidates(
     return truncated
 
 
-def _create_fallback_response(case_truth: dict, session_state: dict) -> dict:
+def _create_fallback_response(
+    case_truth: dict, session_state: dict, parse_error: bool = False
+) -> dict:
     """Create fallback response when LLM fails."""
     logger.warning("Using fallback reasoning response due to LLM failure")
 
@@ -49,11 +53,15 @@ def _create_fallback_response(case_truth: dict, session_state: dict) -> dict:
     trust_delta = -0.1
     fatigue_delta = 0.05
 
+    telemetry = {"chosen_ids": []}
+    if parse_error:
+        telemetry["llm_parse_error"] = True
+
     return {
         "content_plan": ["I'm feeling a bit confused right now"],
         "style_directives": {"tempo": "calm", "length": "short"},
         "state_updates": {"trust_delta": trust_delta, "fatigue_delta": fatigue_delta},
-        "telemetry": {"chosen_ids": []},
+        "telemetry": telemetry,
     }
 
 
@@ -118,65 +126,51 @@ async def reason_llm(
         # DeepSeek reasoner model uses 'reasoning_content', regular models use 'content'
         content = message.get("reasoning_content") or message.get("content", "")
 
-        # Parse JSON response
+        # Parse JSON response using robust parser
         try:
-            result = json.loads(content)
+            parsed_data = parse_llm_json(content)
+            result = normalize_reason_payload(parsed_data)
 
-            # Validate and fix response structure
-            # Add missing fields with defaults
-            if "content_plan" not in result:
-                result["content_plan"] = ["I'm feeling a bit confused right now"]
-            if "style_directives" not in result:
-                result["style_directives"] = {"tempo": "medium", "length": "short"}
-            if "state_updates" not in result:
-                result["state_updates"] = {"trust_delta": 0.0, "fatigue_delta": 0.0}
-            if "telemetry" not in result:
-                result["telemetry"] = {"chosen_ids": []}
+            # Validate and auto-repair the payload
+            validated_result, validation_warnings = validate_reason_payload(
+                result, candidates
+            )
 
-            # Validate nested structures and fix types
-            if not isinstance(result["content_plan"], list):
-                result["content_plan"] = [str(result["content_plan"])]
-
-            if not isinstance(result["style_directives"], dict):
-                result["style_directives"] = {"tempo": "medium", "length": "short"}
-            else:
-                # Ensure required sub-fields exist
-                if "tempo" not in result["style_directives"]:
-                    result["style_directives"]["tempo"] = "medium"
-                if "length" not in result["style_directives"]:
-                    result["style_directives"]["length"] = "short"
-
-            if not isinstance(result["state_updates"], dict):
-                result["state_updates"] = {"trust_delta": 0.0, "fatigue_delta": 0.0}
-            else:
-                # Ensure required sub-fields exist
-                if "trust_delta" not in result["state_updates"]:
-                    result["state_updates"]["trust_delta"] = 0.0
-                if "fatigue_delta" not in result["state_updates"]:
-                    result["state_updates"]["fatigue_delta"] = 0.0
-
-            if (
-                not isinstance(result["telemetry"], dict)
-                or "chosen_ids" not in result["telemetry"]
-            ):
-                result["telemetry"] = {"chosen_ids": []}
+            # If content_plan is still empty after validation, use fallback
+            if not validated_result.get("content_plan"):
+                logger.warning(
+                    "content_plan empty after validation, using fallback",
+                    extra={"validation_warnings": validation_warnings},
+                )
+                fallback_result = _create_fallback_response(
+                    case_truth, session_state, parse_error=False
+                )
+                fallback_result["telemetry"]["llm_validation_failed"] = True
+                return fallback_result
 
             logger.info(
                 "DeepSeek reasoning successful",
                 extra={
-                    "content_plan_items": len(result["content_plan"]),
-                    "chosen_fragments": len(result["telemetry"]["chosen_ids"]),
+                    "content_plan_items": len(validated_result["content_plan"]),
+                    "chosen_fragments": len(
+                        validated_result["telemetry"]["chosen_ids"]
+                    ),
+                    "validation_warnings_count": len(validation_warnings),
                 },
             )
 
-            return result
+            return validated_result
 
-        except json.JSONDecodeError as e:
+        except (ValueError, Exception) as e:
             logger.error(
-                f"Failed to parse JSON response from DeepSeek: {e}",
-                extra={"content": content},
+                f"Failed to parse response from DeepSeek: {e}",
+                extra={
+                    "content": content[:500] + "..." if len(content) > 500 else content
+                },
             )
-            return _create_fallback_response(case_truth, session_state)
+            return _create_fallback_response(
+                case_truth, session_state, parse_error=True
+            )
 
     except Exception as e:
         logger.error(f"DeepSeek reasoning failed: {e}")
