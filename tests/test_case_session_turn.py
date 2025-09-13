@@ -21,7 +21,27 @@ async def test_case_session_turn_flow():
                 "red_flags": ["suicidal ideation", "substance abuse"],
                 "trajectories": ["initial presentation", "treatment response", "recovery"]
             },
-            "policies": {}
+            "policies": {
+                "disclosure_rules": {
+                    "full_on_valid_question": True,
+                    "partial_if_low_trust": True,
+                    "min_trust_for_gated": 0.4
+                },
+                "distortion_rules": {
+                    "enabled": True,
+                    "by_defense": {}
+                },
+                "risk_protocol": {
+                    "trigger_keywords": ["suicide", "kill myself"],
+                    "response_style": "stable",
+                    "lock_topics": []
+                },
+                "style_profile": {
+                    "register": "colloquial",
+                    "tempo": "medium",
+                    "length": "short"
+                }
+            }
         }
         
         response = await client.post("/case", json=case_data)
@@ -64,6 +84,7 @@ async def test_case_session_turn_flow():
                 "last_turn_summary": ""
             },
             "case_id": case_id,
+            "session_id": session_id,
             "options": {}
         }
         

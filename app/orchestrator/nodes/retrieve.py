@@ -115,13 +115,13 @@ async def retrieve(
         return retrieved_fragments[:top_k]
         
     except SQLAlchemyError as e:
-        logger.exception("Database error in retrieve", case_id=case_id, error=str(e))
+        logger.exception(f"Database error in retrieve: case_id={case_id}, error={str(e)}")
         return []
     except ValueError as e:
-        logger.exception("Invalid case_id format", case_id=case_id, error=str(e))
+        logger.exception(f"Invalid case_id format: case_id={case_id}, error={str(e)}")
         raise
     except Exception as e:
-        logger.exception("Unexpected error in retrieve", case_id=case_id, error=str(e))
+        logger.exception(f"Unexpected error in retrieve: case_id={case_id}, error={str(e)}")
         raise
 
 
@@ -157,7 +157,7 @@ async def _get_random_public_fragment(
             topic_exclusions = []
             for topic in excluded_topics:
                 topic_exclusions.append(
-                    text("metadata->>'topic' != :topic").bindparam(topic=topic)
+                    text(f"metadata->>'topic' != '{topic}'")
                 )
             query = query.where(and_(*topic_exclusions))
         
@@ -179,8 +179,8 @@ async def _get_random_public_fragment(
         }
         
     except SQLAlchemyError as e:
-        logger.exception("Database error in _get_random_public_fragment", case_id=case_id, error=str(e))
+        logger.exception(f"Database error in _get_random_public_fragment: case_id={case_id}, error={str(e)}")
         return None
     except Exception as e:
-        logger.exception("Unexpected error in _get_random_public_fragment", case_id=case_id, error=str(e))
+        logger.exception(f"Unexpected error in _get_random_public_fragment: case_id={case_id}, error={str(e)}")
         return None

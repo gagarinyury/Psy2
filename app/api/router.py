@@ -15,6 +15,7 @@ from app.core.models import (
 from app.core.tables import Case, Session, TelemetryTurn
 from app.infra.metrics import CASE_OPERATIONS, SESSION_OPERATIONS, TURN_OPERATIONS
 from app.infra.logging import get_logger
+from app.orchestrator.pipeline import run_turn
 
 logger = get_logger()
 router = APIRouter()
@@ -36,7 +37,7 @@ async def create_case(
         # Create case record
         case = Case(
             case_truth=request.case_truth.model_dump(),
-            policies=request.policies or {},
+            policies=request.policies.model_dump() if request.policies else {},
             version="1.0"
         )
         
@@ -108,7 +109,7 @@ async def process_turn(
     request: TurnRequest,
     db: Annotated[AsyncSession, Depends(get_db)]
 ) -> TurnResponse:
-    """Process a turn request - stub implementation"""
+    """Process a turn request through normalize → retrieve pipeline"""
     try:
         # Validate case exists
         case_uuid = uuid.UUID(request.case_id)
@@ -116,55 +117,15 @@ async def process_turn(
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
         
-        # Find latest session for this case (simplified approach)
-        # In real implementation, session_id would be provided in request
-        result = await db.execute(
-            text("SELECT id FROM sessions WHERE case_id = :case_id ORDER BY created_at DESC LIMIT 1"),
-            {"case_id": case_uuid}
-        )
-        session_row = result.fetchone()
-        
-        if not session_row:
-            raise HTTPException(status_code=404, detail="No session found for case")
-        
-        session_id = session_row[0]
-        
-        # Get next turn number
-        result = await db.execute(
-            text("SELECT COALESCE(MAX(turn_no), 0) + 1 FROM telemetry_turns WHERE session_id = :session_id"),
-            {"session_id": session_id}
-        )
-        turn_no = result.scalar()
-        
-        # Create telemetry record
-        telemetry = TelemetryTurn(
-            session_id=session_id,
-            turn_no=turn_no,
-            used_fragments=[],  # Empty for stub
-            risk_status="none",
-            eval_markers={"stub": True},
-            timings={},
-            costs={}
-        )
-        
-        db.add(telemetry)
-        await db.commit()
-        
-        # Generate stub response - echo first 20 chars of therapist_utterance
-        patient_reply = f"Echo: {request.therapist_utterance[:20]}..."
+        # Process turn through pipeline
+        response = await run_turn(request, db)
         
         # Metrics
         TURN_OPERATIONS.labels(operation="process").inc()
         
-        logger.info(f"Processed turn {turn_no} for session: {session_id}")
+        logger.info(f"Processed turn through pipeline for case: {request.case_id}")
         
-        return TurnResponse(
-            patient_reply=patient_reply,
-            state_updates={"trust_delta": 0.0},
-            used_fragments=[],
-            risk_status="none",
-            eval_markers={"stub": True}
-        )
+        return response
         
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid case_id format")

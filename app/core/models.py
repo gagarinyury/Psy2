@@ -25,6 +25,7 @@ class TurnRequest(BaseModel):
     therapist_utterance: str
     session_state: SessionStateCompact
     case_id: str
+    session_id: str
     options: Optional[dict[str, Any]] = None
 
 
