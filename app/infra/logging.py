@@ -6,7 +6,7 @@ def setup_logging():
     """Setup JSON logging with loguru"""
     # Remove default handler
     logger.remove()
-    
+
     # Add JSON handler for stdout
     logger.add(
         sys.stdout,

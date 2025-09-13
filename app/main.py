@@ -17,23 +17,23 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Create FastAPI application"""
-    
+
     app = FastAPI(
         title="RAG Patient API",
         description="Therapeutic conversation simulation API",
         version="1.0.0",
-        lifespan=lifespan
+        lifespan=lifespan,
     )
-    
+
     # Add middleware
     app.add_middleware(PrometheusMiddleware)
-    
+
     # Include routers
     app.include_router(router)
-    
+
     # Add metrics endpoint
     app.get("/metrics")(get_metrics)
-    
+
     return app
 
 

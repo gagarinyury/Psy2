@@ -11,11 +11,11 @@ class DisclosureRules(BaseModel):
     partial_if_low_trust: bool = True
     min_trust_for_gated: float = 0.4
 
-    @field_validator('min_trust_for_gated')
+    @field_validator("min_trust_for_gated")
     @classmethod
     def validate_min_trust(cls, v: float) -> float:
         if not (0 <= v <= 1):
-            raise ValueError('min_trust_for_gated must be between 0 and 1')
+            raise ValueError("min_trust_for_gated must be between 0 and 1")
         return v
 
 
@@ -23,12 +23,14 @@ class DistortionRules(BaseModel):
     enabled: bool = True
     by_defense: dict[str, float] = {}
 
-    @field_validator('by_defense')
+    @field_validator("by_defense")
     @classmethod
     def validate_by_defense(cls, v: dict[str, float]) -> dict[str, float]:
         for key, value in v.items():
             if not (0 <= value <= 1):
-                raise ValueError(f'by_defense[{key}] must be between 0 and 1, got {value}')
+                raise ValueError(
+                    f"by_defense[{key}] must be between 0 and 1, got {value}"
+                )
         return v
 
 

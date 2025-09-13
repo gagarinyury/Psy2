@@ -8,7 +8,6 @@ from alembic import context
 
 # Import your models
 from app.core.db import Base
-from app.core.tables import Case, KBFragment, Session, TelemetryTurn
 from app.core.settings import settings
 
 # this is the Alembic Config object, which provides
