@@ -12,9 +12,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.models import TurnRequest, TurnResponse
 from app.core.tables import Session, TelemetryTurn, Case
+from app.core.settings import settings
 from app.orchestrator.nodes.normalize import normalize
 from app.orchestrator.nodes.retrieve import retrieve
 from app.orchestrator.nodes.reason import reason
+from app.orchestrator.nodes.reason_llm import reason_llm
+from app.orchestrator.nodes.generate_llm import generate_llm
 from app.orchestrator.nodes.guard import guard
 
 logger = logging.getLogger(__name__)
@@ -107,13 +110,40 @@ async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
 
         # Step 4: Reason - get case_truth (policies already loaded)
         case_truth = await get_case_truth(db, request.case_id)
-        r = reason(case_truth, session_state_dict, cands, policies)
+
+        # Use LLM reasoning if enabled, otherwise use stub
+        if settings.USE_DEEPSEEK_REASON:
+            try:
+                r = await reason_llm(case_truth, session_state_dict, cands, policies)
+                logger.info("Used DeepSeek reasoning")
+            except Exception as e:
+                logger.error(f"DeepSeek reasoning failed, falling back to stub: {e}")
+                r = reason(case_truth, session_state_dict, cands, policies)
+        else:
+            r = reason(case_truth, session_state_dict, cands, policies)
 
         # Step 5: Guard - apply risk filtering
         g = guard(r, policies, n["risk_flags"])
 
         # Step 6: Form response
-        patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status']=='acute' else 'none'}"
+        if settings.USE_DEEPSEEK_GEN:
+            try:
+                # Use LLM generation for natural patient response
+                content_plan = g["safe_output"]["content_plan"]
+                style_directives = g["safe_output"]["style_directives"]
+                patient_context = f"Patient with {case_truth.get('dx_target', ['unknown condition'])[0]}"
+
+                patient_reply = await generate_llm(
+                    content_plan, style_directives, patient_context
+                )
+                logger.info("Used DeepSeek generation")
+            except Exception as e:
+                logger.error(
+                    f"DeepSeek generation failed, falling back to plan format: {e}"
+                )
+                patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status']=='acute' else 'none'}"
+        else:
+            patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status']=='acute' else 'none'}"
 
         # State updates - combine from reason and normalize
         state_updates = r["state_updates"] | {

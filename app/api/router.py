@@ -15,6 +15,8 @@ from app.core.models import (
     SessionStateCompact,
     RAGModeRequest,
     RAGModeResponse,
+    LLMFlagsRequest,
+    LLMFlagsResponse,
 )
 from app.core.tables import Case, Session
 from app.infra.metrics import CASE_OPERATIONS, SESSION_OPERATIONS, TURN_OPERATIONS
@@ -164,3 +166,25 @@ async def set_rag_mode(request: RAGModeRequest) -> RAGModeResponse:
     except Exception as e:
         logger.error(f"Error setting RAG mode: {e}")
         raise HTTPException(status_code=500, detail="Failed to set RAG mode")
+
+
+@router.post("/admin/llm_flags", response_model=LLMFlagsResponse)
+async def set_llm_flags(request: LLMFlagsRequest) -> LLMFlagsResponse:
+    """Set DeepSeek LLM flags for runtime configuration"""
+    try:
+        # Update settings if provided
+        if request.use_reason is not None:
+            settings.USE_DEEPSEEK_REASON = request.use_reason
+            logger.info(f"DeepSeek reasoning flag set to {request.use_reason}")
+
+        if request.use_gen is not None:
+            settings.USE_DEEPSEEK_GEN = request.use_gen
+            logger.info(f"DeepSeek generation flag set to {request.use_gen}")
+
+        return LLMFlagsResponse(
+            use_reason=settings.USE_DEEPSEEK_REASON, use_gen=settings.USE_DEEPSEEK_GEN
+        )
+
+    except Exception as e:
+        logger.error(f"Error setting LLM flags: {e}")
+        raise HTTPException(status_code=500, detail="Failed to set LLM flags")

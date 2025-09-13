@@ -62,3 +62,13 @@ class RAGModeRequest(BaseModel):
 class RAGModeResponse(BaseModel):
     current_mode: str
     use_vector: bool
+
+
+class LLMFlagsRequest(BaseModel):
+    use_reason: Optional[bool] = None
+    use_gen: Optional[bool] = None
+
+
+class LLMFlagsResponse(BaseModel):
+    use_reason: bool
+    use_gen: bool

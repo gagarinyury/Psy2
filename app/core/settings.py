@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import SecretStr
 
 
 class Settings(BaseSettings):
@@ -23,6 +24,17 @@ class Settings(BaseSettings):
     # RAG Vector Search Settings
     RAG_USE_VECTOR: bool = False  # Использовать векторный поиск вместо metadata
     RAG_TOP_K: int = 3  # Количество топ результатов для векторного поиска
+
+    # DeepSeek API Settings
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com/v1"
+    DEEPSEEK_API_KEY: SecretStr | None = None
+    DEEPSEEK_REASONING_MODEL: str = "deepseek-reasoner-3.1"
+    DEEPSEEK_BASE_MODEL: str = "deepseek-chat-3.1"
+    DEEPSEEK_TIMEOUT_S: float = 6.0
+
+    # Feature flags for LLM nodes
+    USE_DEEPSEEK_REASON: bool = False  # Использовать DeepSeek для reasoning вместо stub
+    USE_DEEPSEEK_GEN: bool = False  # Использовать DeepSeek для generation вместо stub
 
     @property
     def database_url(self) -> str:
