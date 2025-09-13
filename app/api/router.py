@@ -13,11 +13,14 @@ from app.core.models import (
     TurnRequest,
     TurnResponse,
     SessionStateCompact,
+    RAGModeRequest,
+    RAGModeResponse,
 )
 from app.core.tables import Case, Session
 from app.infra.metrics import CASE_OPERATIONS, SESSION_OPERATIONS, TURN_OPERATIONS
 from app.infra.logging import get_logger
 from app.orchestrator.pipeline import run_turn
+from app.core.settings import settings
 
 logger = get_logger()
 router = APIRouter()
@@ -130,3 +133,34 @@ async def process_turn(
     except Exception as e:
         logger.error(f"Error processing turn: {e}")
         raise HTTPException(status_code=500, detail="Failed to process turn")
+
+
+@router.post("/admin/rag_mode", response_model=RAGModeResponse)
+async def set_rag_mode(request: RAGModeRequest) -> RAGModeResponse:
+    """
+    Переключает режим RAG между metadata и vector в runtime.
+
+    Args:
+        request: Запрос с флагом use_vector
+
+    Returns:
+        Текущий режим RAG после изменения
+    """
+    try:
+        # Изменяем настройку в runtime
+        settings.RAG_USE_VECTOR = request.use_vector
+
+        # Определяем название режима для ответа
+        current_mode = "vector" if settings.RAG_USE_VECTOR else "metadata"
+
+        logger.info(
+            f"RAG mode switched to {current_mode}", use_vector=settings.RAG_USE_VECTOR
+        )
+
+        return RAGModeResponse(
+            current_mode=current_mode, use_vector=settings.RAG_USE_VECTOR
+        )
+
+    except Exception as e:
+        logger.error(f"Error setting RAG mode: {e}")
+        raise HTTPException(status_code=500, detail="Failed to set RAG mode")

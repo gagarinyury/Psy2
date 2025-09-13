@@ -53,3 +53,12 @@ class SessionRequest(BaseModel):
 
 class SessionResponse(BaseModel):
     session_id: str
+
+
+class RAGModeRequest(BaseModel):
+    use_vector: bool
+
+
+class RAGModeResponse(BaseModel):
+    current_mode: str
+    use_vector: bool

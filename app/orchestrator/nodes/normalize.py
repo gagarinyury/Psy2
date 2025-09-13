@@ -4,13 +4,16 @@ Extracts intent, topics, risk flags, and summary from therapist utterance.
 """
 
 
-def normalize(therapist_utterance: str, session_state_compact: dict) -> dict:
+def normalize(
+    therapist_utterance: str, session_state_compact: dict, policies: dict = None
+) -> dict:
     """
     Analyze therapist utterance and extract structured information.
 
     Args:
         therapist_utterance: The therapist's statement/question
         session_state_compact: Current session state (not used in current implementation)
+        policies: Policy configuration dict (optional)
 
     Returns:
         dict with keys:
@@ -21,14 +24,19 @@ def normalize(therapist_utterance: str, session_state_compact: dict) -> dict:
     """
     utterance_lower = therapist_utterance.lower()
 
+    # Extract trigger keywords from policies or use defaults
+    trigger_keywords = []
+    if policies and "risk_protocol" in policies:
+        trigger_keywords = policies["risk_protocol"].get("trigger_keywords", [])
+
     # Extract intent based on simple rules
-    intent = _extract_intent(utterance_lower)
+    intent = _extract_intent(utterance_lower, trigger_keywords)
 
     # Extract topics
     topics = _extract_topics(utterance_lower)
 
-    # Check for risk flags
-    risk_flags = _extract_risk_flags(utterance_lower)
+    # Check for risk flags using policy keywords
+    risk_flags = _extract_risk_flags(utterance_lower, trigger_keywords)
 
     # Create summary
     last_turn_summary = _create_summary(therapist_utterance)
@@ -41,12 +49,16 @@ def normalize(therapist_utterance: str, session_state_compact: dict) -> dict:
     }
 
 
-def _extract_intent(utterance_lower: str) -> str:
+def _extract_intent(utterance_lower: str, trigger_keywords: list[str] = None) -> str:
     """Extract intent based on keyword patterns."""
 
-    # Risk check keywords
-    risk_keywords = ["суицид", "убить себя", "не хочу жить", "покончить с жизнью"]
-    if any(keyword in utterance_lower for keyword in risk_keywords):
+    # Risk check keywords from policies or defaults
+    if trigger_keywords:
+        risk_keywords = trigger_keywords
+    else:
+        risk_keywords = ["суицид", "убить себя", "не хочу жить", "покончить с жизнью"]
+
+    if any(keyword.lower() in utterance_lower for keyword in risk_keywords):
         return "risk_check"
 
     # Clarify keywords
@@ -83,20 +95,26 @@ def _extract_topics(utterance_lower: str) -> list[str]:
     return topics
 
 
-def _extract_risk_flags(utterance_lower: str) -> list[str]:
-    """Extract risk flags based on suicide-related keywords."""
+def _extract_risk_flags(
+    utterance_lower: str, trigger_keywords: list[str] = None
+) -> list[str]:
+    """Extract risk flags based on suicide-related keywords from policies."""
     risk_flags = []
 
-    suicide_keywords = [
-        "суицид",
-        "убить себя",
-        "не хочу жить",
-        "покончить с жизнью",
-        "повеситься",
-        "отравиться",
-    ]
+    # Use policy keywords or defaults
+    if trigger_keywords:
+        suicide_keywords = trigger_keywords
+    else:
+        suicide_keywords = [
+            "суицид",
+            "убить себя",
+            "не хочу жить",
+            "покончить с жизнью",
+            "повеситься",
+            "отравиться",
+        ]
 
-    if any(keyword in utterance_lower for keyword in suicide_keywords):
+    if any(keyword.lower() in utterance_lower for keyword in suicide_keywords):
         risk_flags.append("suicide_ideation")
 
     return risk_flags

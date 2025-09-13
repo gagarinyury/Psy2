@@ -90,10 +90,13 @@ async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
         # Convert session state to dict for pipeline nodes
         session_state_dict = request.session_state.model_dump()
 
-        # Step 1: Normalize therapist utterance
-        n = normalize(request.therapist_utterance, session_state_dict)
+        # Step 1: Get policies first to pass to normalize
+        policies = await get_policies(db, request.case_id)
 
-        # Step 2: Retrieve relevant knowledge fragments
+        # Step 2: Normalize therapist utterance with policies
+        n = normalize(request.therapist_utterance, session_state_dict, policies)
+
+        # Step 3: Retrieve relevant knowledge fragments
         cands = await retrieve(
             db=db,
             case_id=request.case_id,
@@ -102,15 +105,14 @@ async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
             session_state_compact=session_state_dict,
         )
 
-        # Step 3: Reason - get case_truth and policies from DB
+        # Step 4: Reason - get case_truth (policies already loaded)
         case_truth = await get_case_truth(db, request.case_id)
-        policies = await get_policies(db, request.case_id)
         r = reason(case_truth, session_state_dict, cands, policies)
 
-        # Step 4: Guard - apply risk filtering
+        # Step 5: Guard - apply risk filtering
         g = guard(r, policies, n["risk_flags"])
 
-        # Step 5: Form response
+        # Step 6: Form response
         patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status']=='acute' else 'none'}"
 
         # State updates - combine from reason and normalize
@@ -127,7 +129,7 @@ async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
         # Eval markers - include topics for enhanced evaluation
         eval_markers = {"intent": n["intent"], "topics": n["topics"]}
 
-        # Step 6: Record telemetry
+        # Step 7: Record telemetry
         await _record_telemetry(
             db=db,
             session_id=request.session_id,

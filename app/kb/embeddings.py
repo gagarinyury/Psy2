@@ -5,11 +5,17 @@
 с учетом их метаданных.
 """
 
+import uuid
 import numpy as np
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 from functools import lru_cache
 
 from sentence_transformers import SentenceTransformer
+from sqlalchemy import select, update, func
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.db import AsyncSessionLocal
+from app.core.tables import KBFragment
 from app.infra.logging import get_logger
 
 logger = get_logger()
@@ -187,3 +193,122 @@ def embed_fragments_batch(fragments_data: List[Dict[str, Any]]) -> List[np.ndarr
             error=str(e),
         )
         raise RuntimeError(f"Batch embedding creation failed: {e}")
+
+
+async def _get_fragments_for_embedding(
+    session: AsyncSession, case_id: uuid.UUID, limit: int = 128
+) -> List[KBFragment]:
+    """Получает фрагменты для case_id, у которых embedding IS NULL."""
+    query = (
+        select(KBFragment)
+        .where(KBFragment.case_id == case_id, KBFragment.embedding.is_(None))
+        .order_by(KBFragment.id)
+        .limit(limit)
+    )
+
+    result = await session.execute(query)
+    fragments = result.scalars().all()
+    return list(fragments)
+
+
+async def _update_fragments_embeddings(
+    session: AsyncSession,
+    fragments_with_embeddings: List[Tuple[KBFragment, np.ndarray]],
+) -> int:
+    """Обновляет эмбеддинги фрагментов в базе данных."""
+    if not fragments_with_embeddings:
+        return 0
+
+    updated_count = 0
+    for fragment, embedding in fragments_with_embeddings:
+        await session.execute(
+            update(KBFragment)
+            .where(KBFragment.id == fragment.id)
+            .values(embedding=embedding.tolist())
+        )
+        updated_count += 1
+
+    await session.commit()
+    return updated_count
+
+
+async def run_embed(case_id: uuid.UUID) -> Dict[str, int]:
+    """
+    Вычисляет эмбеддинги для NULL-записей; возвращает {processed:int, dim:int}.
+
+    Args:
+        case_id: UUID случая для обработки эмбеддингов
+
+    Returns:
+        dict: Статистика обработки с ключами 'processed' и 'dim'
+    """
+    logger.info("Starting embedding processing", case_id=str(case_id))
+
+    processed = 0
+    dimension = 0
+
+    async with AsyncSessionLocal() as session:
+        # Проверяем наличие фрагментов для case
+        case_check = await session.execute(
+            select(func.count()).select_from(
+                select(KBFragment).where(KBFragment.case_id == case_id).subquery()
+            )
+        )
+        total_fragments = case_check.scalar()
+
+        if total_fragments == 0:
+            logger.warning("No KB fragments found for case", case_id=str(case_id))
+            return {"processed": 0, "dim": 0}
+
+        # Обрабатываем батчами пока есть фрагменты без эмбеддингов
+        while True:
+            fragments = await _get_fragments_for_embedding(session, case_id)
+
+            if not fragments:
+                logger.info("No more fragments to process")
+                break
+
+            try:
+                # Подготавливаем данные для батч-эмбеддинга
+                fragments_data = []
+                for fragment in fragments:
+                    fragments_data.append(
+                        {
+                            "text": fragment.text,
+                            "metadata": fragment.fragment_metadata or {},
+                        }
+                    )
+
+                # Создаем эмбеддинги батчем
+                embeddings = embed_fragments_batch(fragments_data)
+
+                if embeddings and dimension == 0:
+                    dimension = len(embeddings[0])
+
+                # Обновляем БД
+                fragments_with_embeddings = list(zip(fragments, embeddings))
+                updated_count = await _update_fragments_embeddings(
+                    session, fragments_with_embeddings
+                )
+
+                processed += updated_count
+
+                logger.info(
+                    "Batch processed successfully",
+                    batch_size=len(fragments),
+                    updated_count=updated_count,
+                    total_processed=processed,
+                )
+
+            except Exception as e:
+                logger.error("Failed to process batch", error=str(e))
+                continue
+
+    logger.info(
+        "Embedding processing completed",
+        case_id=str(case_id),
+        processed=processed,
+        dimension=dimension,
+    )
+
+    return {"processed": processed, "dim": dimension}
