@@ -1,45 +1,21 @@
-import os
-import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.pool import NullPool
-from httpx import AsyncClient, ASGITransport
-
-from app.main import app
 from app.core.settings import settings
 
-# Database URL for tests - use existing settings or TEST_DATABASE_URL env var
-DB_URL = os.environ.get("TEST_DATABASE_URL", settings.database_url)
-
 
 @pytest_asyncio.fixture
-async def engine():
-    """Create async engine with NullPool for each test"""
-    eng = create_async_engine(
-        DB_URL, 
+async def session():
+    """Test database session fixture with proper isolation"""
+    engine = create_async_engine(
+        settings.database_url, 
         pool_pre_ping=True, 
-        poolclass=NullPool,
-        echo=False
+        poolclass=NullPool
     )
-    try:
-        yield eng
-    finally:
-        await eng.dispose()
-
-
-@pytest_asyncio.fixture
-async def session(engine):
-    """Create async session for each test"""
     Session = async_sessionmaker(engine, expire_on_commit=False)
-    async with Session() as s:
-        yield s
-
-
-@pytest_asyncio.fixture
-async def client():
-    """Create FastAPI test client with proper ASGI transport"""
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test"
-    ) as ac:
-        yield ac
+    
+    try:
+        async with Session() as s:
+            yield s
+    finally:
+        await engine.dispose()
