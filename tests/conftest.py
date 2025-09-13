@@ -1,21 +1,26 @@
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlalchemy.pool import NullPool
-from app.core.settings import settings
+import asyncio
+import pytest
+from fastapi import FastAPI
+from httpx import AsyncClient, ASGITransport
+from app.main import app as fastapi_app
+from app.core.db import engine
 
 
-@pytest_asyncio.fixture
-async def session():
-    """Test database session fixture with proper isolation"""
-    engine = create_async_engine(
-        settings.database_url, 
-        pool_pre_ping=True, 
-        poolclass=NullPool
-    )
-    Session = async_sessionmaker(engine, expire_on_commit=False)
+@pytest.fixture(scope="session")
+def anyio_backend():
+    return "asyncio"
+
+
+@pytest.fixture(scope="session")
+def app() -> FastAPI:
+    return fastapi_app
+
+
+@pytest.fixture(scope="function")
+async def client(app: FastAPI):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
     
-    try:
-        async with Session() as s:
-            yield s
-    finally:
-        await engine.dispose()
+    # Clean up any lingering database connections after each test
+    await engine.dispose()
