@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     # OpenTelemetry
     otel_exporter: str = "none"
 
+    # RAG Vector Search Settings
+    RAG_USE_VECTOR: bool = False  # Использовать векторный поиск вместо metadata
+    RAG_TOP_K: int = 3  # Количество топ результатов для векторного поиска
+
     @property
     def database_url(self) -> str:
         return (
