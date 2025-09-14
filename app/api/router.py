@@ -2,24 +2,31 @@ import uuid
 from typing import Annotated, Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
 from app.core.models import (
     CaseRequest,
     CaseResponse,
+    CaseTrajectoryResponse,
     LLMFlagsRequest,
     LLMFlagsResponse,
     RAGModeRequest,
     RAGModeResponse,
+    SessionLinkRequest,
+    SessionLinkResponse,
     SessionRequest,
     SessionResponse,
     SessionStateCompact,
+    SessionTrajectoryResponse,
+    TrajectoryAggregateItem,
+    TrajectoryProgressItem,
     TurnRequest,
     TurnResponse,
 )
 from app.core.settings import settings
-from app.core.tables import Case, Session
+from app.core.tables import Case, Session, SessionLink, SessionTrajectory
 from app.eval.metrics import compute_session_metrics
 from app.infra.logging import get_logger
 from app.infra.metrics import CASE_OPERATIONS, SESSION_OPERATIONS, TURN_OPERATIONS
@@ -257,3 +264,209 @@ async def get_session_missed_keys(
     except Exception as e:
         logger.error(f"Error getting missed keys: {e}")
         raise HTTPException(status_code=500, detail="Failed to get missed keys")
+
+
+@router.post("/session/link", response_model=SessionLinkResponse)
+async def create_session_link(
+    request: SessionLinkRequest, db: Annotated[AsyncSession, Depends(get_db)]
+) -> SessionLinkResponse:
+    """Create or update session link and return the session chain for the case"""
+    try:
+        # Validate UUIDs
+        session_uuid = uuid.UUID(request.session_id)
+        case_uuid = uuid.UUID(request.case_id)
+        prev_session_uuid = None
+        if request.prev_session_id:
+            prev_session_uuid = uuid.UUID(request.prev_session_id)
+
+        # Validate case exists
+        case = await db.get(Case, case_uuid)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+
+        # Validate session exists
+        session = await db.get(Session, session_uuid)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Validate prev_session exists if provided
+        if prev_session_uuid:
+            prev_session = await db.get(Session, prev_session_uuid)
+            if not prev_session:
+                raise HTTPException(status_code=404, detail="Previous session not found")
+
+        # Create or update session link
+        session_link = SessionLink(
+            session_id=session_uuid,
+            case_id=case_uuid,
+            prev_session_id=prev_session_uuid,
+        )
+
+        # Use merge to handle upsert behavior
+        await db.merge(session_link)
+        await db.commit()
+
+        # Get session chain for the case (ordered by created_at)
+        stmt = (
+            select(SessionLink.session_id)
+            .where(SessionLink.case_id == case_uuid)
+            .order_by(SessionLink.created_at)
+        )
+        result = await db.execute(stmt)
+        session_chain = [str(row.session_id) for row in result.fetchall()]
+
+        logger.info(
+            f"Created/updated session link for session {request.session_id} "
+            f"in case {request.case_id}"
+        )
+
+        return SessionLinkResponse(case_id=request.case_id, sessions=session_chain)
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    except Exception as e:
+        logger.error(f"Error creating session link: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create session link")
+
+
+@router.get("/session/{session_id}/trajectory", response_model=SessionTrajectoryResponse)
+async def get_session_trajectory(
+    session_id: str, db: Annotated[AsyncSession, Depends(get_db)]
+) -> SessionTrajectoryResponse:
+    """Get trajectory progress for a session"""
+    try:
+        # Validate session_id format
+        session_uuid = uuid.UUID(session_id)
+
+        # Check if session exists
+        session = await db.get(Session, session_uuid)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Get case and its trajectories to calculate total steps
+        case = await db.get(Case, session.case_id)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+
+        case_truth = case.case_truth
+        trajectories = case_truth.get("trajectories", [])
+
+        # Get session trajectory progress
+        stmt = select(SessionTrajectory).where(SessionTrajectory.session_id == session_uuid)
+        result = await db.execute(stmt)
+        session_trajectories = result.scalars().all()
+
+        # Build progress response
+        progress = []
+        trajectory_lookup = {traj["id"]: traj for traj in trajectories}
+
+        for session_traj in session_trajectories:
+            trajectory_id = session_traj.trajectory_id
+            total_steps = 0
+            if trajectory_id in trajectory_lookup:
+                total_steps = len(trajectory_lookup[trajectory_id].get("steps", []))
+
+            progress.append(
+                TrajectoryProgressItem(
+                    trajectory_id=trajectory_id,
+                    completed_steps=session_traj.completed_steps,
+                    total=total_steps,
+                )
+            )
+
+        logger.info(f"Retrieved trajectory progress for session {session_id}")
+
+        return SessionTrajectoryResponse(session_id=session_id, progress=progress)
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session_id format")
+    except HTTPException:
+        # Re-raise HTTPException to preserve status code
+        raise
+    except Exception as e:
+        logger.error(f"Error getting session trajectory: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get session trajectory")
+
+
+@router.get("/report/case/{case_id}/trajectories", response_model=CaseTrajectoryResponse)
+async def get_case_trajectory_report(
+    case_id: str, db: Annotated[AsyncSession, Depends(get_db)]
+) -> CaseTrajectoryResponse:
+    """Get aggregated trajectory data across all sessions for a case"""
+    try:
+        # Validate case_id format
+        case_uuid = uuid.UUID(case_id)
+
+        # Check if case exists
+        case = await db.get(Case, case_uuid)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+
+        # Get all sessions for the case through session links
+        stmt = (
+            select(SessionLink.session_id)
+            .where(SessionLink.case_id == case_uuid)
+            .order_by(SessionLink.created_at)
+        )
+        result = await db.execute(stmt)
+        session_ids = [str(row.session_id) for row in result.fetchall()]
+
+        if not session_ids:
+            return CaseTrajectoryResponse(
+                case_id=case_id, sessions=[], trajectories=[]
+            )
+
+        # Get all trajectory progress for these sessions
+        session_uuids = [uuid.UUID(sid) for sid in session_ids]
+        stmt = select(SessionTrajectory).where(
+            SessionTrajectory.session_id.in_(session_uuids)
+        )
+        result = await db.execute(stmt)
+        all_session_trajectories = result.scalars().all()
+
+        # Get case trajectories for total step calculation
+        case_truth = case.case_truth
+        trajectories = case_truth.get("trajectories", [])
+        trajectory_lookup = {traj["id"]: traj for traj in trajectories}
+
+        # Aggregate by trajectory_id
+        trajectory_aggregates = {}
+        for session_traj in all_session_trajectories:
+            trajectory_id = session_traj.trajectory_id
+            if trajectory_id not in trajectory_aggregates:
+                trajectory_aggregates[trajectory_id] = set()
+
+            # Union of completed steps across all sessions
+            trajectory_aggregates[trajectory_id].update(session_traj.completed_steps)
+
+        # Build response with coverage calculation
+        trajectory_items = []
+        for trajectory_id, completed_steps_set in trajectory_aggregates.items():
+            completed_steps_union = list(completed_steps_set)
+            total_steps = 0
+            if trajectory_id in trajectory_lookup:
+                total_steps = len(trajectory_lookup[trajectory_id].get("steps", []))
+
+            coverage = len(completed_steps_union) / total_steps if total_steps > 0 else 0.0
+
+            trajectory_items.append(
+                TrajectoryAggregateItem(
+                    trajectory_id=trajectory_id,
+                    completed_steps_union=completed_steps_union,
+                    coverage=round(coverage, 2),
+                )
+            )
+
+        logger.info(f"Generated trajectory report for case {case_id}")
+
+        return CaseTrajectoryResponse(
+            case_id=case_id, sessions=session_ids, trajectories=trajectory_items
+        )
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid case_id format")
+    except Exception as e:
+        logger.error(f"Error generating case trajectory report: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to generate case trajectory report"
+        )

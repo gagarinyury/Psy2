@@ -1,7 +1,21 @@
 from typing import Any, Optional
+
 from pydantic import BaseModel
 
 from app.core.policies import Policies
+
+
+class TrajectoryStep(BaseModel):
+    id: str
+    name: str
+    condition_tags: list[str] = []
+    min_trust: float = 0.4
+
+
+class Trajectory(BaseModel):
+    id: str
+    name: str
+    steps: list[TrajectoryStep] = []
 
 
 class CaseTruth(BaseModel):
@@ -9,7 +23,7 @@ class CaseTruth(BaseModel):
     ddx: dict[str, float]
     hidden_facts: list[str]
     red_flags: list[str]
-    trajectories: list[str]
+    trajectories: list[Trajectory] = []
 
 
 class SessionStateCompact(BaseModel):
@@ -72,3 +86,38 @@ class LLMFlagsRequest(BaseModel):
 class LLMFlagsResponse(BaseModel):
     use_reason: bool
     use_gen: bool
+
+
+# Trajectory-related API models
+class SessionLinkRequest(BaseModel):
+    session_id: str
+    case_id: str
+    prev_session_id: Optional[str] = None
+
+
+class SessionLinkResponse(BaseModel):
+    case_id: str
+    sessions: list[str]
+
+
+class TrajectoryProgressItem(BaseModel):
+    trajectory_id: str
+    completed_steps: list[str]
+    total: int
+
+
+class SessionTrajectoryResponse(BaseModel):
+    session_id: str
+    progress: list[TrajectoryProgressItem]
+
+
+class TrajectoryAggregateItem(BaseModel):
+    trajectory_id: str
+    completed_steps_union: list[str]
+    coverage: float
+
+
+class CaseTrajectoryResponse(BaseModel):
+    case_id: str
+    sessions: list[str]
+    trajectories: list[TrajectoryAggregateItem]

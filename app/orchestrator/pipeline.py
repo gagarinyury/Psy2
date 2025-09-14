@@ -4,21 +4,23 @@ Coordinates normalize and retrieve nodes to generate patient responses.
 """
 
 import logging
+import uuid
 from typing import Any
+from datetime import datetime
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.models import TurnRequest, TurnResponse
-from app.core.tables import Session, TelemetryTurn, Case
+from app.core.models import TurnRequest, TurnResponse, CaseTruth, Trajectory, TrajectoryStep
 from app.core.settings import settings
-from app.orchestrator.nodes.normalize import normalize
-from app.orchestrator.nodes.retrieve import retrieve
-from app.orchestrator.nodes.reason import reason
-from app.orchestrator.nodes.reason_llm import reason_llm
+from app.core.tables import Case, Session, TelemetryTurn, SessionTrajectory, KBFragment
 from app.orchestrator.nodes.generate_llm import generate_llm
 from app.orchestrator.nodes.guard import guard
+from app.orchestrator.nodes.normalize import normalize
+from app.orchestrator.nodes.reason import reason
+from app.orchestrator.nodes.reason_llm import reason_llm
+from app.orchestrator.nodes.retrieve import retrieve
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +65,109 @@ async def get_policies(db: AsyncSession, case_id: str) -> dict:
         raise ValueError(f"Case {case_id} not found")
 
     return case.policies
+
+
+async def update_trajectory_progress(
+    db: AsyncSession,
+    session_id: str,
+    case_truth: dict,
+    session_state_trust: float,
+    used_fragments: list[str],
+) -> None:
+    """
+    Update trajectory progress based on current turn results.
+
+    For each trajectory in case_truth, check if any steps should be completed
+    based on trust level and used fragments with matching tags.
+
+    Args:
+        db: Database session
+        session_id: UUID of the session
+        case_truth: Case truth data containing trajectories
+        session_state_trust: Current session trust level
+        used_fragments: List of fragment IDs used in this turn
+    """
+    try:
+        # Parse case_truth into CaseTruth model to access trajectories
+        case_truth_model = CaseTruth(**case_truth)
+
+        if not case_truth_model.trajectories or not used_fragments:
+            return
+
+        # Get metadata for used fragments to check tags
+        fragment_query = select(KBFragment).where(
+            KBFragment.id.in_([uuid.UUID(fid) for fid in used_fragments])
+        )
+        fragment_result = await db.execute(fragment_query)
+        used_fragment_records = fragment_result.scalars().all()
+
+        # Collect all tags from used fragments
+        used_tags = set()
+        for fragment in used_fragment_records:
+            if fragment.fragment_metadata and "tags" in fragment.fragment_metadata:
+                used_tags.update(fragment.fragment_metadata["tags"])
+
+        if not used_tags:
+            return
+
+        # Process each trajectory
+        for trajectory in case_truth_model.trajectories:
+            # Get current session trajectory record
+            trajectory_query = select(SessionTrajectory).where(
+                SessionTrajectory.session_id == uuid.UUID(session_id),
+                SessionTrajectory.trajectory_id == trajectory.id
+            )
+            trajectory_result = await db.execute(trajectory_query)
+            session_trajectory = trajectory_result.scalar_one_or_none()
+
+            # Track new steps to complete
+            new_completed_steps = []
+            existing_completed_steps = []
+
+            if session_trajectory:
+                existing_completed_steps = session_trajectory.completed_steps or []
+
+            # Check each step in the trajectory
+            for step in trajectory.steps:
+                # Skip if step already completed
+                if step.id in existing_completed_steps:
+                    continue
+
+                # Check trust threshold
+                if session_state_trust < step.min_trust:
+                    continue
+
+                # Check if step condition tags intersect with used fragment tags
+                if step.condition_tags and not set(step.condition_tags).intersection(used_tags):
+                    continue
+
+                # Step conditions met - mark for completion
+                new_completed_steps.append(step.id)
+                logger.info(
+                    f"Trajectory step completed: {trajectory.id}/{step.id} "
+                    f"(trust: {session_state_trust:.2f}, tags: {list(set(step.condition_tags).intersection(used_tags))})"
+                )
+
+            if new_completed_steps:
+                if session_trajectory:
+                    # Update existing record
+                    session_trajectory.completed_steps = existing_completed_steps + new_completed_steps
+                    session_trajectory.updated_at = func.now()
+                else:
+                    # Create new session trajectory record
+                    session_trajectory = SessionTrajectory(
+                        session_id=uuid.UUID(session_id),
+                        trajectory_id=trajectory.id,
+                        completed_steps=new_completed_steps
+                    )
+                    db.add(session_trajectory)
+
+        await db.commit()
+
+    except Exception as e:
+        logger.error(f"Failed to update trajectory progress: {e}")
+        await db.rollback()
+        # Don't raise - trajectory tracking is non-critical
 
 
 async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
@@ -166,6 +271,15 @@ async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
             used_fragments=used_fragments,
             risk_status=risk_status,
             eval_markers=eval_markers,
+        )
+
+        # Step 8: Update trajectory progress
+        await update_trajectory_progress(
+            db=db,
+            session_id=request.session_id,
+            case_truth=case_truth,
+            session_state_trust=request.session_state.trust,
+            used_fragments=used_fragments,
         )
 
         return TurnResponse(
