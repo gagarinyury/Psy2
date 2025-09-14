@@ -31,14 +31,15 @@ dependencies = [
     "json5==0.9.25",
 ]
 
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E","F","I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app","tests"]
+
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
 asyncio_mode = "strict"
-asyncio_default_fixture_loop_scope = "function"
-asyncio_default_test_loop_scope = "function"
-[tool.poetry.group.dev.dependencies]
-pytest-asyncio = "0.23.8"
 

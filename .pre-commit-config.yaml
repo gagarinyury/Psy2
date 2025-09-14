@@ -1,21 +1,6 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
-    hooks:
-      - id: ruff
-        args: ["--fix"]
-      - id: ruff-format
-  - repo: local
-    hooks:
-      - id: pytest-anyio-mark
-        name: Fix pytest async markers
-        entry: bash -c "find tests -name '*.py' -exec sed -i '' 's/@pytest\.mark\.asyncio/@pytest.mark.anyio/g' {} +"
-        language: system
-        files: ^tests/.*\.py$
-        pass_filenames: false
-      - id: remove-skip-markers
-        name: Remove temporary skip markers
-        entry: bash -c "find tests -name '*.py' -exec sed -i '' '/^@pytest\.mark\.skip.*async loop conflicts.*$/d' {} +"
-        language: system
-        files: ^tests/.*\.py$
-        pass_filenames: false
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.6.9
+  hooks:
+    - id: ruff
+      args: [--fix]
