@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated, Dict, Any
+from typing import Annotated, Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,22 +8,22 @@ from app.core.db import get_db
 from app.core.models import (
     CaseRequest,
     CaseResponse,
-    SessionRequest,
-    SessionResponse,
-    TurnRequest,
-    TurnResponse,
-    SessionStateCompact,
-    RAGModeRequest,
-    RAGModeResponse,
     LLMFlagsRequest,
     LLMFlagsResponse,
+    RAGModeRequest,
+    RAGModeResponse,
+    SessionRequest,
+    SessionResponse,
+    SessionStateCompact,
+    TurnRequest,
+    TurnResponse,
 )
-from app.core.tables import Case, Session
-from app.infra.metrics import CASE_OPERATIONS, SESSION_OPERATIONS, TURN_OPERATIONS
-from app.infra.logging import get_logger
-from app.orchestrator.pipeline import run_turn
 from app.core.settings import settings
+from app.core.tables import Case, Session
 from app.eval.metrics import compute_session_metrics
+from app.infra.logging import get_logger
+from app.infra.metrics import CASE_OPERATIONS, SESSION_OPERATIONS, TURN_OPERATIONS
+from app.orchestrator.pipeline import run_turn
 
 logger = get_logger()
 router = APIRouter()
@@ -212,6 +212,7 @@ async def get_session_report(
             "session_id": session_id,
             "case_id": str(session.case_id),
             "metrics": metrics,
+            "missed_keys": metrics["missed_keys"],
         }
 
     except ValueError:
@@ -222,3 +223,37 @@ async def get_session_report(
     except Exception as e:
         logger.error(f"Error generating session report: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate session report")
+
+
+@router.get("/report/session/{session_id}/missed")
+async def get_session_missed_keys(
+    session_id: str, db: Annotated[AsyncSession, Depends(get_db)]
+) -> Dict[str, Any]:
+    """Get missed keys for a completed session"""
+    try:
+        # Validate session_id format
+        session_uuid = uuid.UUID(session_id)
+
+        # Check if session exists
+        session = await db.get(Session, session_uuid)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Compute session metrics
+        metrics = await compute_session_metrics(db, session_uuid)
+
+        return {
+            "session_id": session_id,
+            "case_id": str(session.case_id),
+            "missed_key_ids": metrics["missed_keys"]["ids"],
+            "count": metrics["missed_keys"]["count"],
+        }
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session_id format")
+    except HTTPException:
+        # Re-raise HTTPException to preserve status code
+        raise
+    except Exception as e:
+        logger.error(f"Error getting missed keys: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get missed keys")

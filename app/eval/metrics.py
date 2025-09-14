@@ -6,14 +6,14 @@ Computes key metrics for completed therapy sessions including:
 - Risk-Timeliness: how quickly risks were identified
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.tables import Session, KBFragment
+from app.core.tables import KBFragment, Session
 
 
 async def compute_session_metrics(db: AsyncSession, session_id: UUID) -> Dict[str, Any]:
@@ -82,6 +82,9 @@ async def compute_session_metrics(db: AsyncSession, session_id: UUID) -> Dict[st
     # Calculate used key fragments
     used_key_ids = list(used_fragment_ids.intersection(set(all_key_ids)))
 
+    # Calculate missed key fragments
+    missed_key_ids = list(set(all_key_ids) - used_fragment_ids)
+
     # Calculate Recall-Keys metric
     if all_key_ids:
         recall_keys = len(used_key_ids) / len(all_key_ids)
@@ -117,5 +120,9 @@ async def compute_session_metrics(db: AsyncSession, session_id: UUID) -> Dict[st
         "key_fragments_total": len(all_key_ids),
         "used_key_ids": used_key_ids,
         "all_key_ids": all_key_ids,
+        "missed_keys": {
+            "ids": missed_key_ids,
+            "count": len(missed_key_ids),
+        },
         "first_acute_turn": first_acute_turn,
     }
