@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated, Dict
+from typing import Annotated, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +23,7 @@ from app.infra.metrics import CASE_OPERATIONS, SESSION_OPERATIONS, TURN_OPERATIO
 from app.infra.logging import get_logger
 from app.orchestrator.pipeline import run_turn
 from app.core.settings import settings
+from app.eval.metrics import compute_session_metrics
 
 logger = get_logger()
 router = APIRouter()
@@ -188,3 +189,36 @@ async def set_llm_flags(request: LLMFlagsRequest) -> LLMFlagsResponse:
     except Exception as e:
         logger.error(f"Error setting LLM flags: {e}")
         raise HTTPException(status_code=500, detail="Failed to set LLM flags")
+
+
+@router.get("/report/session/{session_id}")
+async def get_session_report(
+    session_id: str, db: Annotated[AsyncSession, Depends(get_db)]
+) -> Dict[str, Any]:
+    """Get evaluation report for a completed session"""
+    try:
+        # Validate session_id format
+        session_uuid = uuid.UUID(session_id)
+
+        # Check if session exists
+        session = await db.get(Session, session_uuid)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Compute session metrics
+        metrics = await compute_session_metrics(db, session_uuid)
+
+        return {
+            "session_id": session_id,
+            "case_id": str(session.case_id),
+            "metrics": metrics,
+        }
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session_id format")
+    except HTTPException:
+        # Re-raise HTTPException to preserve status code
+        raise
+    except Exception as e:
+        logger.error(f"Error generating session report: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate session report")

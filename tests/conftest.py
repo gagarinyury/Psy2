@@ -2,7 +2,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient, ASGITransport
 from app.main import app as fastapi_app
-from app.core.db import engine
+from app.core.db import engine, AsyncSessionLocal
 
 
 @pytest.fixture(scope="session")
@@ -68,3 +68,14 @@ async def setup_test_case(client: AsyncClient):
     session_id = response.json()["session_id"]
 
     return case_id, session_id
+
+
+@pytest.fixture
+async def db_session():
+    """Provides a database session for direct database operations in tests."""
+    session = AsyncSessionLocal()
+    try:
+        yield session
+    finally:
+        await session.rollback()
+        await session.close()
