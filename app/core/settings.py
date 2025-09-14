@@ -1,5 +1,5 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -17,6 +17,12 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://redis:6379/0"
+
+    # Rate Limiting
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_IP_PER_MIN: int = 120
+    RATE_LIMIT_SESSION_PER_MIN: int = 20
+    RATE_LIMIT_FAIL_OPEN: bool = False
 
     # OpenTelemetry
     otel_exporter: str = "none"
