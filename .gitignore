@@ -82,4 +82,4 @@ docker-compose.override.yml
 
 # Alembic
 # Don't ignore migrations directory, but ignore temp files
-app/migrations/__pycache__/.env
+app/migrations/__pycache__/
