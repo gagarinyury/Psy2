@@ -77,6 +77,9 @@ tmp/
 temp/
 test_*.json
 
+# Debug and archived files
+archive/
+
 # Docker volumes
 docker-compose.override.yml
 
