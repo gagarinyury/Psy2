@@ -51,13 +51,9 @@ return allowed
 """
 
 
-
-
 def per_min_to_refill(capacity: int) -> float:
     """Convert per-minute capacity to refill-per-second rate"""
     return capacity / 60.0
-
-
 
 
 async def allow(redis_client: redis.Redis, key: str, capacity: int) -> bool:
@@ -66,20 +62,31 @@ async def allow(redis_client: redis.Redis, key: str, capacity: int) -> bool:
     current_time = int(time.time())
     ttl = 120
     try:
-        result = await redis_client.eval(LUA_TOKEN_BUCKET, 1, key, capacity, refill_rate, current_time, ttl)
+        result = await redis_client.eval(
+            LUA_TOKEN_BUCKET, 1, key, capacity, refill_rate, current_time, ttl
+        )
         return result == 1 or result == "1"
     except Exception as e:
         # FakeRedis doesn't support eval, use pure Python fallback
         if "unknown command" in str(e) or "eval" in str(e).lower():
             logger.debug(f"Using Python fallback for rate limiting {key}: {e}")
-            return await _python_fallback(redis_client, key, capacity, refill_rate, float(current_time), ttl)
+            return await _python_fallback(
+                redis_client, key, capacity, refill_rate, float(current_time), ttl
+            )
         raise
 
 
-async def _python_fallback(redis_client: redis.Redis, key: str, capacity: int, refill_rate: float, current_time: float, ttl: int) -> bool:
+async def _python_fallback(
+    redis_client: redis.Redis,
+    key: str,
+    capacity: int,
+    refill_rate: float,
+    current_time: float,
+    ttl: int,
+) -> bool:
     """Python implementation of token bucket logic for testing with FakeRedis"""
     # Get current bucket state
-    bucket_data = await redis_client.hmget(key, 'tokens', 'ts')
+    bucket_data = await redis_client.hmget(key, "tokens", "ts")
 
     # Parse current state
     if bucket_data[0] is None:
@@ -105,7 +112,7 @@ async def _python_fallback(redis_client: redis.Redis, key: str, capacity: int, r
     tokens -= 1
 
     # Update bucket state
-    await redis_client.hset(key, mapping={'tokens': tokens, 'ts': current_time})
+    await redis_client.hset(key, mapping={"tokens": tokens, "ts": current_time})
     await redis_client.expire(key, ttl)
 
     return True
@@ -176,22 +183,24 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Check limits based on session_id presence
             if session_id:
                 # If session_id exists, check only session limit
-                session_allowed = await allow(redis_client, f"rl:session:{session_id}", settings.RATE_LIMIT_SESSION_PER_MIN)
+                session_allowed = await allow(
+                    redis_client, f"rl:session:{session_id}", settings.RATE_LIMIT_SESSION_PER_MIN
+                )
                 if not session_allowed:
                     logger.warning(f"Rate limit exceeded for session: {session_id}")
                     return JSONResponse(
-                        status_code=429,
-                        content={"detail": "rate_limited", "scope": "session"}
+                        status_code=429, content={"detail": "rate_limited", "scope": "session"}
                     )
                 # Session OK - do NOT check IP
             else:
                 # No session_id, check IP limit only
-                ip_allowed = await allow(redis_client, f"rl:ip:{client_ip}", settings.RATE_LIMIT_IP_PER_MIN)
+                ip_allowed = await allow(
+                    redis_client, f"rl:ip:{client_ip}", settings.RATE_LIMIT_IP_PER_MIN
+                )
                 if not ip_allowed:
                     logger.warning(f"Rate limit exceeded for IP: {client_ip}")
                     return JSONResponse(
-                        status_code=429,
-                        content={"detail": "rate_limited", "scope": "ip"}
+                        status_code=429, content={"detail": "rate_limited", "scope": "ip"}
                     )
 
             # Restore request body for downstream processing
@@ -207,9 +216,4 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             logger.exception("Rate limiting failed")
             if settings.RATE_LIMIT_FAIL_OPEN:
                 return await call_next(request)
-            return JSONResponse(
-                status_code=503,
-                content={"detail": "rate_limiter_unavailable"}
-            )
-
-
+            return JSONResponse(status_code=503, content={"detail": "rate_limiter_unavailable"})

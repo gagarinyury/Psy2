@@ -8,6 +8,7 @@ from app.core.settings import settings
 # Enable debug logging
 logging.basicConfig(level=logging.DEBUG)
 
+
 @pytest.mark.anyio
 async def test_session_truly_skips_ip_check(client, monkeypatch, app, caplog):
     """ДЕТАЛЬНЫЙ тест: проверяем что IP вообще не вызывается при session_id"""
@@ -15,9 +16,9 @@ async def test_session_truly_skips_ip_check(client, monkeypatch, app, caplog):
     r = FakeRedis()
     app.state.redis = r
 
-    monkeypatch.setattr(settings, 'RATE_LIMIT_ENABLED', True)
-    monkeypatch.setattr(settings, 'RATE_LIMIT_IP_PER_MIN', 0)  # ПОЛНЫЙ ЗАПРЕТ IP
-    monkeypatch.setattr(settings, 'RATE_LIMIT_SESSION_PER_MIN', 5)
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    monkeypatch.setattr(settings, "RATE_LIMIT_IP_PER_MIN", 0)  # ПОЛНЫЙ ЗАПРЕТ IP
+    monkeypatch.setattr(settings, "RATE_LIMIT_SESSION_PER_MIN", 5)
 
     # Мокаем функцию allow() чтобы отследить её вызовы
     original_allow = None
@@ -43,9 +44,16 @@ async def test_session_truly_skips_ip_check(client, monkeypatch, app, caplog):
     headers = {"X-Session-ID": "sess-A", "content-type": "application/json"}
     body = {
         "therapist_utterance": "ok",
-        "session_state": {"affect": "n", "trust": 0.5, "fatigue": 0, "access_level": 1, "risk_status": "none", "last_turn_summary": ""},
+        "session_state": {
+            "affect": "n",
+            "trust": 0.5,
+            "fatigue": 0,
+            "access_level": 1,
+            "risk_status": "none",
+            "last_turn_summary": "",
+        },
         "case_id": "00000000-0000-0000-0000-000000000000",
-        "options": {}
+        "options": {},
     }
 
     with caplog.at_level(logging.DEBUG):
@@ -66,9 +74,13 @@ async def test_session_truly_skips_ip_check(client, monkeypatch, app, caplog):
 
     # КРИТИЧЕСКИЕ ПРОВЕРКИ
     assert len(session_calls) == 1, f"Должен быть 1 session вызов, получили: {session_calls}"
-    assert len(ip_calls) == 0, f"IP НЕ должен вызываться при наличии session_id! Получили IP вызовы: {ip_calls}"
+    assert len(ip_calls) == 0, (
+        f"IP НЕ должен вызываться при наличии session_id! Получили IP вызовы: {ip_calls}"
+    )
 
     # Ответ должен быть не 429 (так как session разрешен)
-    assert resp.status_code != 429, f"Response should not be 429, got {resp.status_code}: {resp.text}"
+    assert resp.status_code != 429, (
+        f"Response should not be 429, got {resp.status_code}: {resp.text}"
+    )
 
     print("✅ ТЕСТ ПРОЙДЕН: IP действительно НЕ проверяется при наличии session_id")

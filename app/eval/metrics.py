@@ -151,19 +151,23 @@ async def compute_session_metrics(db: AsyncSession, session_id: UUID) -> Dict[st
         }
 
         for trajectory in trajectories:
-            trajectory_obj = Trajectory(**trajectory) if isinstance(trajectory, dict) else trajectory
+            trajectory_obj = (
+                Trajectory(**trajectory) if isinstance(trajectory, dict) else trajectory
+            )
             total_steps = len(trajectory_obj.steps)
 
             # Find corresponding session trajectory record
             session_traj = session_trajectories.get(trajectory_obj.id)
             completed_steps = session_traj.completed_steps if session_traj else []
 
-            trajectory_progress.append({
-                "trajectory_id": trajectory_obj.id,
-                "completed": len(completed_steps),
-                "total": total_steps,
-                "completed_steps": completed_steps
-            })
+            trajectory_progress.append(
+                {
+                    "trajectory_id": trajectory_obj.id,
+                    "completed": len(completed_steps),
+                    "total": total_steps,
+                    "completed_steps": completed_steps,
+                }
+            )
 
     return {
         "recall_keys": recall_keys,
@@ -216,11 +220,7 @@ async def compute_case_trajectories(db: AsyncSession, case_id: UUID) -> dict:
     session_ids = [str(sid) for sid in sessions_result.scalars().all()]
 
     if not session_ids:
-        return {
-            "case_id": str(case_id),
-            "sessions": [],
-            "trajectories": []
-        }
+        return {"case_id": str(case_id), "sessions": [], "trajectories": []}
 
     # Get all SessionTrajectory records for these sessions
     session_trajectory_query = select(SessionTrajectory).where(
@@ -257,14 +257,12 @@ async def compute_case_trajectories(db: AsyncSession, case_id: UUID) -> dict:
         # Calculate coverage
         coverage = len(completed_steps_union) / total_steps if total_steps > 0 else 0.0
 
-        trajectories.append({
-            "trajectory_id": trajectory_id,
-            "completed_steps_union": list(completed_steps_union),
-            "coverage": coverage
-        })
+        trajectories.append(
+            {
+                "trajectory_id": trajectory_id,
+                "completed_steps_union": list(completed_steps_union),
+                "coverage": coverage,
+            }
+        )
 
-    return {
-        "case_id": str(case_id),
-        "sessions": session_ids,
-        "trajectories": trajectories
-    }
+    return {"case_id": str(case_id), "sessions": session_ids, "trajectories": trajectories}

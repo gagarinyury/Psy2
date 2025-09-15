@@ -11,9 +11,9 @@ async def test_session_blocked_no_ip_check(client, monkeypatch, app):
     r = FakeRedis()
     app.state.redis = r
 
-    monkeypatch.setattr(settings, 'RATE_LIMIT_ENABLED', True)
-    monkeypatch.setattr(settings, 'RATE_LIMIT_IP_PER_MIN', 999)  # Высокий IP лимит
-    monkeypatch.setattr(settings, 'RATE_LIMIT_SESSION_PER_MIN', 1)  # Session лимит = 1
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    monkeypatch.setattr(settings, "RATE_LIMIT_IP_PER_MIN", 999)  # Высокий IP лимит
+    monkeypatch.setattr(settings, "RATE_LIMIT_SESSION_PER_MIN", 1)  # Session лимит = 1
 
     calls = []
 
@@ -41,9 +41,16 @@ async def test_session_blocked_no_ip_check(client, monkeypatch, app):
     headers = {"X-Session-ID": "sess-limit", "content-type": "application/json"}
     body = {
         "therapist_utterance": "ok",
-        "session_state": {"affect": "n", "trust": 0.5, "fatigue": 0, "access_level": 1, "risk_status": "none", "last_turn_summary": ""},
+        "session_state": {
+            "affect": "n",
+            "trust": 0.5,
+            "fatigue": 0,
+            "access_level": 1,
+            "risk_status": "none",
+            "last_turn_summary": "",
+        },
         "case_id": "00000000-0000-0000-0000-000000000000",
-        "options": {}
+        "options": {},
     }
 
     # 1-й запрос - должен пройти
@@ -71,10 +78,14 @@ async def test_session_blocked_no_ip_check(client, monkeypatch, app):
 
     # Проверяем ответы
     assert resp1.status_code != 429, f"1-й запрос должен пройти, получили: {resp1.status_code}"
-    assert resp2.status_code == 429, f"2-й запрос должен быть заблокирован по session, получили: {resp2.status_code}"
+    assert resp2.status_code == 429, (
+        f"2-й запрос должен быть заблокирован по session, получили: {resp2.status_code}"
+    )
 
     if resp2.status_code == 429:
         json_resp = resp2.json()
-        assert json_resp.get("scope") == "session", f"Scope должен быть 'session', получили: {json_resp}"
+        assert json_resp.get("scope") == "session", (
+            f"Scope должен быть 'session', получили: {json_resp}"
+        )
 
     print("✅ ТЕСТ ПРОЙДЕН: При session блокировке IP вообще НЕ проверяется")

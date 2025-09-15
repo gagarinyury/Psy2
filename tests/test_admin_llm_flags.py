@@ -159,9 +159,7 @@ async def test_admin_llm_flags_none_values(client):
         settings.USE_DEEPSEEK_GEN = False
 
         # Передаем None значения - они не должны изменить настройки
-        response = await client.post(
-            "/admin/llm_flags", json={"use_reason": None, "use_gen": None}
-        )
+        response = await client.post("/admin/llm_flags", json={"use_reason": None, "use_gen": None})
 
         assert response.status_code == 200
 
@@ -237,9 +235,7 @@ async def test_admin_llm_flags_response_structure(client):
     """
     Тест структуры ответа API.
     """
-    response = await client.post(
-        "/admin/llm_flags", json={"use_reason": True, "use_gen": True}
-    )
+    response = await client.post("/admin/llm_flags", json={"use_reason": True, "use_gen": True})
 
     assert response.status_code == 200
 

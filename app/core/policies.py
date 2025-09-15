@@ -28,9 +28,7 @@ class DistortionRules(BaseModel):
     def validate_by_defense(cls, v: dict[str, float]) -> dict[str, float]:
         for key, value in v.items():
             if not (0 <= value <= 1):
-                raise ValueError(
-                    f"by_defense[{key}] must be between 0 and 1, got {value}"
-                )
+                raise ValueError(f"by_defense[{key}] must be between 0 and 1, got {value}")
         return v
 
 

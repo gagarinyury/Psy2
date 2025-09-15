@@ -115,9 +115,7 @@ class TestValidateReasonPayload:
         """Test chosen_ids keeps only IDs from valid candidates."""
         payload = {
             "content_plan": ["test"],
-            "telemetry": {
-                "chosen_ids": ["frag1", "invalid_id", "frag2", "another_invalid"]
-            },
+            "telemetry": {"chosen_ids": ["frag1", "invalid_id", "frag2", "another_invalid"]},
         }
 
         candidates = [
@@ -129,9 +127,7 @@ class TestValidateReasonPayload:
 
         assert set(result["telemetry"]["chosen_ids"]) == {"frag1", "frag2"}
         assert "chosen_id 'invalid_id' not in valid candidates, removed" in warnings
-        assert (
-            "chosen_id 'another_invalid' not in valid candidates, removed" in warnings
-        )
+        assert "chosen_id 'another_invalid' not in valid candidates, removed" in warnings
 
     def test_chosen_ids_deduplication(self):
         """Test chosen_ids are deduplicated."""
@@ -176,8 +172,7 @@ class TestValidateReasonPayload:
         candidates = [
             {
                 "id": "frag1",
-                "text": "This is a longer text that should be truncated at 200 characters. "
-                * 5,
+                "text": "This is a longer text that should be truncated at 200 characters. " * 5,
             },
             {"id": "frag2", "text": "Short fragment"},
         ]

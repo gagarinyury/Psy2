@@ -277,9 +277,7 @@ async def test_vector_mode_no_noise(client, monkeypatch):
     """Проверяет что в векторном режиме нет добавления шума"""
     monkeypatch.setattr("app.core.settings.settings.RAG_USE_VECTOR", True)
     # Мокаем random чтобы гарантировать что шум бы добавился в metadata режиме
-    monkeypatch.setattr(
-        "app.orchestrator.nodes.retrieve.random.random", lambda: 0.1
-    )  # < 0.2
+    monkeypatch.setattr("app.orchestrator.nodes.retrieve.random.random", lambda: 0.1)  # < 0.2
 
     case_id, session = await create_test_case_with_fragments()
 
@@ -318,9 +316,7 @@ async def test_metadata_mode_with_noise(client, monkeypatch):
     """Проверяет что в metadata режиме может добавляться шум"""
     # RAG_USE_VECTOR остается False по умолчанию
     # Мокаем random чтобы гарантировать добавление шума
-    monkeypatch.setattr(
-        "app.orchestrator.nodes.retrieve.random.random", lambda: 0.1
-    )  # < 0.2
+    monkeypatch.setattr("app.orchestrator.nodes.retrieve.random.random", lambda: 0.1)  # < 0.2
 
     case_id, session = await create_test_case_with_fragments()
 

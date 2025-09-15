@@ -4,9 +4,7 @@ Extracts intent, topics, risk flags, and summary from therapist utterance.
 """
 
 
-def normalize(
-    therapist_utterance: str, session_state_compact: dict, policies: dict = None
-) -> dict:
+def normalize(therapist_utterance: str, session_state_compact: dict, policies: dict = None) -> dict:
     """
     Analyze therapist utterance and extract structured information.
 
@@ -95,9 +93,7 @@ def _extract_topics(utterance_lower: str) -> list[str]:
     return topics
 
 
-def _extract_risk_flags(
-    utterance_lower: str, trigger_keywords: list[str] = None
-) -> list[str]:
+def _extract_risk_flags(utterance_lower: str, trigger_keywords: list[str] = None) -> list[str]:
     """Extract risk flags based on suicide-related keywords from policies."""
     risk_flags = []
 

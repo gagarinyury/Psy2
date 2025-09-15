@@ -8,9 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def reason(
-    case_truth: dict, session_state: dict, candidates: list[dict], policies: dict
-) -> dict:
+def reason(case_truth: dict, session_state: dict, candidates: list[dict], policies: dict) -> dict:
     """
     Process retrieved candidates and create content/distortion execution plan.
 
@@ -61,9 +59,7 @@ def reason(
         "content_plan_size": len(content_plan),
     }
 
-    logger.debug(
-        f"Reason complete: {len(content_plan)} content items, trust_delta={trust_delta}"
-    )
+    logger.debug(f"Reason complete: {len(content_plan)} content items, trust_delta={trust_delta}")
 
     return {
         "content_plan": content_plan,

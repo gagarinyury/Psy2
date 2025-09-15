@@ -46,15 +46,17 @@ class Settings(BaseSettings):
     USE_DEEPSEEK_REASON: bool = False  # Использовать DeepSeek для reasoning вместо stub
     USE_DEEPSEEK_GEN: bool = False  # Использовать DeepSeek для generation вместо stub
 
-    @field_validator('DEEPSEEK_API_KEY')
+    @field_validator("DEEPSEEK_API_KEY")
     @classmethod
     def validate_deepseek_api_key(cls, v, info):
         """Validate DeepSeek API key when reasoning or generation features are enabled"""
-        use_reason = info.data.get('USE_DEEPSEEK_REASON', False)
-        use_gen = info.data.get('USE_DEEPSEEK_GEN', False)
+        use_reason = info.data.get("USE_DEEPSEEK_REASON", False)
+        use_gen = info.data.get("USE_DEEPSEEK_GEN", False)
 
         if (use_reason or use_gen) and not v:
-            raise ValueError("DEEPSEEK_API_KEY is required when USE_DEEPSEEK_REASON or USE_DEEPSEEK_GEN is enabled")
+            raise ValueError(
+                "DEEPSEEK_API_KEY is required when USE_DEEPSEEK_REASON or USE_DEEPSEEK_GEN is enabled"
+            )
 
         return v
 

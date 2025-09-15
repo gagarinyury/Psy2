@@ -186,7 +186,12 @@ async def test_question_quality_no_known_intents(db_session):
     """Test case where all turns have unknown intent."""
     # Create test case and session
     case = Case(
-        case_truth={"dx_target": ["PTSD"], "ddx": {"PTSD": 0.7}, "red_flags": [], "hidden_facts": []},
+        case_truth={
+            "dx_target": ["PTSD"],
+            "ddx": {"PTSD": 0.7},
+            "red_flags": [],
+            "hidden_facts": [],
+        },
         policies={"disclosure_rules": {"min_trust_for_gated": 0.3}},
     )
     db_session.add(case)

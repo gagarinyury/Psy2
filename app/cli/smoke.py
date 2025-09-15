@@ -162,14 +162,10 @@ async def perform_turn(
         }
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{API_BASE_URL}/turn", json=turn_data, timeout=15.0
-            )
+            response = await client.post(f"{API_BASE_URL}/turn", json=turn_data, timeout=15.0)
 
             if response.status_code != 200:
-                raise SmokeTestError(
-                    f"Turn failed: {response.status_code} {response.text}"
-                )
+                raise SmokeTestError(f"Turn failed: {response.status_code} {response.text}")
 
             turn_response = response.json()
             return turn_response
@@ -261,9 +257,7 @@ async def run_smoke_test(
         )
 
         # Turn 2: Suicide risk question
-        turn2 = await perform_turn(
-            case_id, session_id, "Бывают ли мысли о суициде?", trust=trust_b
-        )
+        turn2 = await perform_turn(case_id, session_id, "Бывают ли мысли о суициде?", trust=trust_b)
         turns.append(
             {
                 "utterance": "Бывают ли мысли о суициде?",
@@ -332,9 +326,7 @@ def run(vector: bool, trust_a: float, trust_b: float, json_only: bool):
         if json_only:
             original_stdout = setup_silent_mode()
 
-        report = asyncio.run(
-            run_smoke_test(vector_mode=vector, trust_a=trust_a, trust_b=trust_b)
-        )
+        report = asyncio.run(run_smoke_test(vector_mode=vector, trust_a=trust_a, trust_b=trust_b))
 
         # Print JSON report
         if json_only:

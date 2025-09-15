@@ -21,9 +21,7 @@ tracer = get_tracer(__name__)
 
 def _load_reasoning_prompt() -> str:
     """Load the reasoning system prompt from file."""
-    prompt_path = (
-        Path(__file__).parent.parent.parent / "llm" / "prompts" / "reasoning.prompt.txt"
-    )
+    prompt_path = Path(__file__).parent.parent.parent / "llm" / "prompts" / "reasoning.prompt.txt"
     try:
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read().strip()
@@ -123,9 +121,7 @@ async def reason_llm(
             span.set_attribute("input.candidates_count", len(candidates))
 
             async with DeepSeekClient() as client:
-                response = await client.reasoning(
-                    messages, temperature=0.3, max_tokens=1000
-                )
+                response = await client.reasoning(messages, temperature=0.3, max_tokens=1000)
 
         # Extract response content
         if not response.get("choices") or not response["choices"]:
@@ -142,9 +138,7 @@ async def reason_llm(
             result = normalize_reason_payload(parsed_data)
 
             # Validate and auto-repair the payload
-            validated_result, validation_warnings = validate_reason_payload(
-                result, candidates
-            )
+            validated_result, validation_warnings = validate_reason_payload(result, candidates)
 
             # If content_plan is still empty after validation, use fallback
             if not validated_result.get("content_plan"):
@@ -162,9 +156,7 @@ async def reason_llm(
                 "DeepSeek reasoning successful",
                 extra={
                     "content_plan_items": len(validated_result["content_plan"]),
-                    "chosen_fragments": len(
-                        validated_result["telemetry"]["chosen_ids"]
-                    ),
+                    "chosen_fragments": len(validated_result["telemetry"]["chosen_ids"]),
                     "validation_warnings_count": len(validation_warnings),
                 },
             )
@@ -174,13 +166,9 @@ async def reason_llm(
         except (ValueError, Exception) as e:
             logger.error(
                 f"Failed to parse response from DeepSeek: {e}",
-                extra={
-                    "content": content[:500] + "..." if len(content) > 500 else content
-                },
+                extra={"content": content[:500] + "..." if len(content) > 500 else content},
             )
-            return _create_fallback_response(
-                case_truth, session_state, parse_error=True
-            )
+            return _create_fallback_response(case_truth, session_state, parse_error=True)
 
     except Exception as e:
         logger.error(f"DeepSeek reasoning failed: {e}")

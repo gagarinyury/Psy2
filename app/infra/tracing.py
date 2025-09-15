@@ -36,9 +36,7 @@ def setup_tracing(service_name: str = "rag-patient") -> None:
         service_name: Service identifier for traces
     """
     # Configure resource with service name
-    resource = Resource(attributes={
-        SERVICE_NAME: service_name
-    })
+    resource = Resource(attributes={SERVICE_NAME: service_name})
 
     # Create tracer provider
     tracer_provider = TracerProvider(resource=resource)
@@ -49,7 +47,7 @@ def setup_tracing(service_name: str = "rag-patient") -> None:
         # Use OTLP gRPC exporter for production
         exporter = OTLPSpanExporter(
             endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT,
-            insecure=True  # Use insecure for local development, configure TLS for production
+            insecure=True,  # Use insecure for local development, configure TLS for production
         )
         logger.info(f"OpenTelemetry: Using OTLP exporter to {settings.OTEL_EXPORTER_OTLP_ENDPOINT}")
     else:

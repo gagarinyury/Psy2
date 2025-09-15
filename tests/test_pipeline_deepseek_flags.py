@@ -75,9 +75,11 @@ async def test_pipeline_with_deepseek_reason_enabled(client):
     }
 
     # Enable DeepSeek reasoning
-    with patch.object(settings, "USE_DEEPSEEK_REASON", True), patch.object(
-        settings, "USE_DEEPSEEK_GEN", False
-    ), patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class:
+    with (
+        patch.object(settings, "USE_DEEPSEEK_REASON", True),
+        patch.object(settings, "USE_DEEPSEEK_GEN", False),
+        patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class,
+    ):
         # Mock the client
         mock_client = MagicMock()
         mock_client.reasoning = AsyncMock(return_value=mock_reasoning_response)
@@ -176,9 +178,11 @@ async def test_pipeline_with_deepseek_generation_enabled(client):
     }
 
     # Enable DeepSeek generation (but not reasoning)
-    with patch.object(settings, "USE_DEEPSEEK_REASON", False), patch.object(
-        settings, "USE_DEEPSEEK_GEN", True
-    ), patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
+    with (
+        patch.object(settings, "USE_DEEPSEEK_REASON", False),
+        patch.object(settings, "USE_DEEPSEEK_GEN", True),
+        patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class,
+    ):
         # Mock the client
         mock_client = MagicMock()
         mock_client.generate = AsyncMock(return_value=mock_generation_response)
@@ -290,13 +294,12 @@ async def test_pipeline_with_both_deepseek_flags_enabled(client):
     }
 
     # Enable both flags
-    with patch.object(settings, "USE_DEEPSEEK_REASON", True), patch.object(
-        settings, "USE_DEEPSEEK_GEN", True
-    ), patch(
-        "app.orchestrator.nodes.reason_llm.DeepSeekClient"
-    ) as mock_reason_client_class, patch(
-        "app.orchestrator.nodes.generate_llm.DeepSeekClient"
-    ) as mock_gen_client_class:
+    with (
+        patch.object(settings, "USE_DEEPSEEK_REASON", True),
+        patch.object(settings, "USE_DEEPSEEK_GEN", True),
+        patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_reason_client_class,
+        patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_gen_client_class,
+    ):
         # Mock reasoning client
         mock_reason_client = MagicMock()
         mock_reason_client.reasoning = AsyncMock(return_value=mock_reasoning_response)
@@ -308,9 +311,7 @@ async def test_pipeline_with_both_deepseek_flags_enabled(client):
         # Mock generation client
         mock_gen_client = MagicMock()
         mock_gen_client.generate = AsyncMock(return_value=mock_generation_response)
-        mock_gen_client_class.return_value.__aenter__ = AsyncMock(
-            return_value=mock_gen_client
-        )
+        mock_gen_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_gen_client)
         mock_gen_client_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
         # Make turn request
@@ -385,14 +386,14 @@ async def test_pipeline_deepseek_reasoning_fallback(client):
     session_id = session_response.json()["session_id"]
 
     # Enable DeepSeek reasoning with failing client
-    with patch.object(settings, "USE_DEEPSEEK_REASON", True), patch.object(
-        settings, "USE_DEEPSEEK_GEN", False
-    ), patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class:
+    with (
+        patch.object(settings, "USE_DEEPSEEK_REASON", True),
+        patch.object(settings, "USE_DEEPSEEK_GEN", False),
+        patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class,
+    ):
         # Mock client that throws exception
         mock_client = MagicMock()
-        mock_client.reasoning = AsyncMock(
-            side_effect=Exception("API connection failed")
-        )
+        mock_client.reasoning = AsyncMock(side_effect=Exception("API connection failed"))
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -458,14 +459,14 @@ async def test_pipeline_deepseek_generation_fallback(client):
     session_id = session_response.json()["session_id"]
 
     # Enable DeepSeek generation with failing client
-    with patch.object(settings, "USE_DEEPSEEK_REASON", False), patch.object(
-        settings, "USE_DEEPSEEK_GEN", True
-    ), patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
+    with (
+        patch.object(settings, "USE_DEEPSEEK_REASON", False),
+        patch.object(settings, "USE_DEEPSEEK_GEN", True),
+        patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class,
+    ):
         # Mock client that throws exception
         mock_client = MagicMock()
-        mock_client.generate = AsyncMock(
-            side_effect=Exception("Generation service unavailable")
-        )
+        mock_client.generate = AsyncMock(side_effect=Exception("Generation service unavailable"))
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -536,8 +537,9 @@ async def test_pipeline_default_behavior_unchanged(client):
     session_id = session_response.json()["session_id"]
 
     # Ensure both flags are disabled (default)
-    with patch.object(settings, "USE_DEEPSEEK_REASON", False), patch.object(
-        settings, "USE_DEEPSEEK_GEN", False
+    with (
+        patch.object(settings, "USE_DEEPSEEK_REASON", False),
+        patch.object(settings, "USE_DEEPSEEK_GEN", False),
     ):
         # Make turn request
         turn_request = {

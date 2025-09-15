@@ -11,8 +11,8 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '38768b431ef5'
-down_revision = 'bb28c240b2bc'
+revision = "38768b431ef5"
+down_revision = "bb28c240b2bc"
 branch_labels = None
 depends_on = None
 
@@ -27,7 +27,7 @@ def upgrade() -> None:
             "completed_steps",
             postgresql.ARRAY(sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'")
+            server_default=sa.text("'{}'"),
         ),
         sa.Column(
             "updated_at",
@@ -46,9 +46,7 @@ def upgrade() -> None:
     # Create session_links table
     op.create_table(
         "session_links",
-        sa.Column(
-            "session_id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False
-        ),
+        sa.Column("session_id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
         sa.Column("case_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("prev_session_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column(
@@ -73,11 +71,7 @@ def upgrade() -> None:
     )
 
     # Create index on (case_id, created_at) for session_links
-    op.create_index(
-        "ix_session_links_case_created",
-        "session_links",
-        ["case_id", "created_at"]
-    )
+    op.create_index("ix_session_links_case_created", "session_links", ["case_id", "created_at"])
 
 
 def downgrade() -> None:

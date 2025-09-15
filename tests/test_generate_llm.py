@@ -29,9 +29,7 @@ async def test_generate_llm_success():
     }
 
     # Mock DeepSeekClient
-    with patch(
-        "app.orchestrator.nodes.generate_llm.DeepSeekClient"
-    ) as mock_client_class:
+    with patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.generate = AsyncMock(return_value=mock_response)
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
@@ -71,9 +69,7 @@ async def test_generate_llm_empty_response_fallback():
     # Mock пустой ответ
     mock_response = {"choices": []}
 
-    with patch(
-        "app.orchestrator.nodes.generate_llm.DeepSeekClient"
-    ) as mock_client_class:
+    with patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.generate = AsyncMock(return_value=mock_response)
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
@@ -104,9 +100,7 @@ async def test_generate_llm_empty_content_fallback():
         ]
     }
 
-    with patch(
-        "app.orchestrator.nodes.generate_llm.DeepSeekClient"
-    ) as mock_client_class:
+    with patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.generate = AsyncMock(return_value=mock_response)
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
@@ -127,9 +121,7 @@ async def test_generate_llm_api_exception_fallback():
     style_directives = {"tempo": "medium", "length": "short"}
 
     # Mock исключение при вызове API
-    with patch(
-        "app.orchestrator.nodes.generate_llm.DeepSeekClient"
-    ) as mock_client_class:
+    with patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.generate = AsyncMock(side_effect=Exception("API connection failed"))
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
@@ -150,13 +142,9 @@ async def test_generate_llm_quoted_response():
     style_directives = {"tempo": "medium", "length": "short"}
 
     # Mock ответ с кавычками
-    mock_response = {
-        "choices": [{"message": {"content": '"I really need some help with this."'}}]
-    }
+    mock_response = {"choices": [{"message": {"content": '"I really need some help with this."'}}]}
 
-    with patch(
-        "app.orchestrator.nodes.generate_llm.DeepSeekClient"
-    ) as mock_client_class:
+    with patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.generate = AsyncMock(return_value=mock_response)
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
@@ -189,9 +177,7 @@ async def test_generate_llm_length_short():
         ]
     }
 
-    with patch(
-        "app.orchestrator.nodes.generate_llm.DeepSeekClient"
-    ) as mock_client_class:
+    with patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.generate = AsyncMock(return_value=mock_response)
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
@@ -223,9 +209,7 @@ async def test_generate_llm_length_long():
         ]
     }
 
-    with patch(
-        "app.orchestrator.nodes.generate_llm.DeepSeekClient"
-    ) as mock_client_class:
+    with patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.generate = AsyncMock(return_value=mock_response)
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
@@ -249,18 +233,10 @@ async def test_generate_llm_no_patient_context():
 
     # Mock ответ
     mock_response = {
-        "choices": [
-            {
-                "message": {
-                    "content": "This is a test response without specific context."
-                }
-            }
-        ]
+        "choices": [{"message": {"content": "This is a test response without specific context."}}]
     }
 
-    with patch(
-        "app.orchestrator.nodes.generate_llm.DeepSeekClient"
-    ) as mock_client_class:
+    with patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.generate = AsyncMock(return_value=mock_response)
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)

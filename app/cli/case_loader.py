@@ -102,9 +102,7 @@ async def load_case(session: AsyncSession, case_data: dict, kb_data: list) -> st
                 existing_fragment.text = kb_item["text"]
                 existing_fragment.fragment_metadata = metadata
                 existing_fragment.availability = metadata.get("availability", "public")
-                existing_fragment.consistency_keys = metadata.get(
-                    "consistency_keys", []
-                )
+                existing_fragment.consistency_keys = metadata.get("consistency_keys", [])
                 existing_fragment.embedding = None
                 fragments_updated += 1
             else:

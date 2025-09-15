@@ -103,9 +103,7 @@ async def create_session(
         # Metrics
         SESSION_OPERATIONS.labels(operation="create").inc()
 
-        logger.info(
-            f"Created session with ID: {session.id} for case: {request.case_id}"
-        )
+        logger.info(f"Created session with ID: {session.id} for case: {request.case_id}")
 
         return SessionResponse(session_id=str(session.id))
 
@@ -163,13 +161,9 @@ async def set_rag_mode(request: RAGModeRequest) -> RAGModeResponse:
         # Определяем название режима для ответа
         current_mode = "vector" if settings.RAG_USE_VECTOR else "metadata"
 
-        logger.info(
-            f"RAG mode switched to {current_mode}", use_vector=settings.RAG_USE_VECTOR
-        )
+        logger.info(f"RAG mode switched to {current_mode}", use_vector=settings.RAG_USE_VECTOR)
 
-        return RAGModeResponse(
-            current_mode=current_mode, use_vector=settings.RAG_USE_VECTOR
-        )
+        return RAGModeResponse(current_mode=current_mode, use_vector=settings.RAG_USE_VECTOR)
 
     except Exception as e:
         logger.error(f"Error setting RAG mode: {e}")
@@ -412,15 +406,11 @@ async def get_case_trajectory_report(
         session_ids = [str(row.session_id) for row in result.fetchall()]
 
         if not session_ids:
-            return CaseTrajectoryResponse(
-                case_id=case_id, sessions=[], trajectories=[]
-            )
+            return CaseTrajectoryResponse(case_id=case_id, sessions=[], trajectories=[])
 
         # Get all trajectory progress for these sessions
         session_uuids = [uuid.UUID(sid) for sid in session_ids]
-        stmt = select(SessionTrajectory).where(
-            SessionTrajectory.session_id.in_(session_uuids)
-        )
+        stmt = select(SessionTrajectory).where(SessionTrajectory.session_id.in_(session_uuids))
         result = await db.execute(stmt)
         all_session_trajectories = result.scalars().all()
 
@@ -467,6 +457,4 @@ async def get_case_trajectory_report(
         raise HTTPException(status_code=400, detail="Invalid case_id format")
     except Exception as e:
         logger.error(f"Error generating case trajectory report: {e}")
-        raise HTTPException(
-            status_code=500, detail="Failed to generate case trajectory report"
-        )
+        raise HTTPException(status_code=500, detail="Failed to generate case trajectory report")

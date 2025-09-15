@@ -19,9 +19,7 @@ async def test_deepseek_client_initialization():
 
         async with DeepSeekClient() as client:
             # Проверяем base_url (с учетом trailing slash)
-            assert str(client.base_url).rstrip(
-                "/"
-            ) == settings.DEEPSEEK_BASE_URL.rstrip("/")
+            assert str(client.base_url).rstrip("/") == settings.DEEPSEEK_BASE_URL.rstrip("/")
 
             # Проверяем заголовки
             headers = client.headers
@@ -101,9 +99,7 @@ async def test_generate_method():
     Тест метода generate с mock HTTP запросом.
     """
     # Mock ответ от API
-    mock_response = {
-        "choices": [{"message": {"content": "Generated patient response here"}}]
-    }
+    mock_response = {"choices": [{"message": {"content": "Generated patient response here"}}]}
 
     # Тестовые сообщения
     test_messages = [

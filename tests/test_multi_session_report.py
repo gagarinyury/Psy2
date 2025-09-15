@@ -37,17 +37,17 @@ async def test_multi_session_trajectory_report(client, db_session):
                             "id": "sleep",
                             "name": "Sleep Assessment",
                             "condition_tags": ["sleep"],
-                            "min_trust": 0.3
+                            "min_trust": 0.3,
                         },
                         {
                             "id": "mood",
                             "name": "Mood Assessment",
                             "condition_tags": ["mood"],
-                            "min_trust": 0.5
-                        }
-                    ]
+                            "min_trust": 0.5,
+                        },
+                    ],
                 }
-            ]
+            ],
         },
         "policies": {
             "disclosure_rules": {
@@ -66,7 +66,7 @@ async def test_multi_session_trajectory_report(client, db_session):
                 "tempo": "medium",
                 "length": "short",
             },
-        }
+        },
     }
 
     case_response = await client.post("/case", json=case_data)
@@ -266,5 +266,3 @@ async def test_multi_session_trajectory_report(client, db_session):
     # The case-level aggregation should show full coverage (1.0) from union of both sessions
     assert t1_trajectory["coverage"] == 1.0  # 2 completed steps / 2 total steps = 1.0
     assert len(t1_trajectory["completed_steps_union"]) == 2  # Both sleep and mood
-
-

@@ -15,11 +15,13 @@ def anyio_backend():
 def app() -> FastAPI:
     return fastapi_app
 
+
 @pytest.fixture(scope="function")
 async def client(app: FastAPI):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+
 
 @pytest.fixture(scope="function")
 async def db_session():

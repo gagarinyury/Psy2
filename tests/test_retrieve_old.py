@@ -30,9 +30,7 @@ async def setup_test_data(db):
     await db.commit()
 
     # Загрузка demo_case.json
-    demo_case_path = (
-        Path(__file__).parent.parent / "app" / "examples" / "demo_case.json"
-    )
+    demo_case_path = Path(__file__).parent.parent / "app" / "examples" / "demo_case.json"
     with open(demo_case_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     case_id = await load_case(db, data["case"], data["kb"])
@@ -286,9 +284,7 @@ async def test_high_trust_threshold_gated_access(db):
         if fragment["text"] == "Серьезные симптомы, требующие высокого доверия":
             high_trust_found = True
             assert fragment["metadata"]["availability"] == "gated"
-    assert (
-        high_trust_found
-    ), "Фрагмент с высоким порогом должен быть доступен при достаточном trust"
+    assert high_trust_found, "Фрагмент с высоким порогом должен быть доступен при достаточном trust"
 
 
 @pytest.mark.skip(reason="Async loop conflicts - pending full anyio migration")

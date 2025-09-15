@@ -47,9 +47,7 @@ class DeepSeekClient(httpx.AsyncClient):
         # Set default headers
         headers = kwargs.get("headers", {})
         if settings.DEEPSEEK_API_KEY:
-            headers["Authorization"] = (
-                f"Bearer {settings.DEEPSEEK_API_KEY.get_secret_value()}"
-            )
+            headers["Authorization"] = f"Bearer {settings.DEEPSEEK_API_KEY.get_secret_value()}"
         headers["Content-Type"] = "application/json"
         kwargs["headers"] = headers
 
@@ -61,10 +59,7 @@ class DeepSeekClient(httpx.AsyncClient):
             return True
         if isinstance(exception, httpx.HTTPStatusError):
             # Ретраим только 429 и 5xx ошибки
-            return (
-                exception.response.status_code == 429
-                or exception.response.status_code >= 500
-            )
+            return exception.response.status_code == 429 or exception.response.status_code >= 500
         return False
 
     @retry(
@@ -115,14 +110,10 @@ class DeepSeekClient(httpx.AsyncClient):
                 raise
             else:
                 # Retry on 429 (rate limit) and 5xx (server errors)
-                logger.warning(
-                    f"DeepSeek API error {e.response.status_code}, retrying..."
-                )
+                logger.warning(f"DeepSeek API error {e.response.status_code}, retrying...")
                 raise
 
-    async def reasoning(
-        self, messages: List[Dict[str, str]], **kwargs
-    ) -> Dict[str, Any]:
+    async def reasoning(self, messages: List[Dict[str, str]], **kwargs) -> Dict[str, Any]:
         """
         Perform reasoning task using DeepSeek reasoning model.
 
@@ -137,9 +128,7 @@ class DeepSeekClient(httpx.AsyncClient):
             model=settings.DEEPSEEK_REASONING_MODEL, messages=messages, **kwargs
         )
 
-    async def generate(
-        self, messages: List[Dict[str, str]], **kwargs
-    ) -> Dict[str, Any]:
+    async def generate(self, messages: List[Dict[str, str]], **kwargs) -> Dict[str, Any]:
         """
         Perform text generation using DeepSeek base model.
 

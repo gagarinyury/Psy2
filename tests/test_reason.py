@@ -87,9 +87,7 @@ class TestReason:
         session_state = {}
 
         # Test with single candidate
-        single_candidate = [
-            {"id": "single", "text": "Only text available", "type": "insight"}
-        ]
+        single_candidate = [{"id": "single", "text": "Only text available", "type": "insight"}]
 
         result = reason(case_truth, session_state, single_candidate, {})
         assert len(result["content_plan"]) == 1
@@ -245,9 +243,7 @@ class TestReason:
         assert isinstance(result, dict)
         assert result["content_plan"] == []
         assert result["distortions_plan"] == []
-        assert (
-            result["state_updates"]["trust_delta"] == -0.01
-        )  # negative for empty candidates
+        assert result["state_updates"]["trust_delta"] == -0.01  # negative for empty candidates
         assert result["telemetry"]["candidates_count"] == 0
 
     def test_return_structure_completeness(self):

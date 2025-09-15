@@ -49,9 +49,7 @@ def validate_reason_payload(
     return result, warnings
 
 
-def _normalize_content_plan(
-    payload: dict, candidates: list[dict]
-) -> tuple[dict, list[str]]:
+def _normalize_content_plan(payload: dict, candidates: list[dict]) -> tuple[dict, list[str]]:
     """Normalize content_plan: list of strings, trim, drop empty, max 2 elements."""
     warnings = []
     result = payload.copy()
@@ -188,9 +186,7 @@ def _normalize_state_updates(payload: dict) -> tuple[dict, list[str]]:
     return result, warnings
 
 
-def _normalize_telemetry(
-    payload: dict, candidates: list[dict]
-) -> tuple[dict, list[str]]:
+def _normalize_telemetry(payload: dict, candidates: list[dict]) -> tuple[dict, list[str]]:
     """
     Normalize telemetry.chosen_ids:
     - Keep only IDs from current candidates

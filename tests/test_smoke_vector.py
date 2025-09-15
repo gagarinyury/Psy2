@@ -33,9 +33,9 @@ async def test_vector_smoke():
         )
 
         # Check that command succeeded
-        assert (
-            result.returncode == 0
-        ), f"Vector smoke test failed with return code {result.returncode}. stderr: {result.stderr}"
+        assert result.returncode == 0, (
+            f"Vector smoke test failed with return code {result.returncode}. stderr: {result.stderr}"
+        )
 
         # Parse JSON output - find the last valid JSON line
         # (there may be structured logging mixed in)
@@ -66,15 +66,13 @@ async def test_vector_smoke():
 
         # Validate report structure
         assert "status" in report, "Report missing 'status' field"
-        assert (
-            report["status"] == "success"
-        ), f"Vector smoke test reported failure: {report.get('error', 'Unknown error')}"
+        assert report["status"] == "success", (
+            f"Vector smoke test reported failure: {report.get('error', 'Unknown error')}"
+        )
 
         # Check mode
         assert "mode" in report, "Report missing 'mode' field"
-        assert (
-            report["mode"] == "vector"
-        ), f"Expected mode 'vector', got {report['mode']}"
+        assert report["mode"] == "vector", f"Expected mode 'vector', got {report['mode']}"
 
         # Validate basic structure
         assert "case_id" in report, "Report missing 'case_id' field"
@@ -98,18 +96,14 @@ async def test_vector_smoke():
         assert "risk" in turn1, "Turn 1 missing 'risk'"
         assert "used_fragments" in turn1, "Turn 1 missing 'used_fragments'"
 
-        assert (
-            "спите" in turn1["utterance"]
-        ), f"Turn 1 should be about sleep, got: {turn1['utterance']}"
-        assert (
-            turn1["risk"] == "none"
-        ), f"Turn 1 risk should be 'none', got: {turn1['risk']}"
-        assert isinstance(
-            turn1["used_fragments"], list
-        ), "Turn 1 used_fragments should be a list"
-        assert (
-            len(turn1["used_fragments"]) > 0
-        ), "Turn 1 used_fragments should not be empty in vector mode"
+        assert "спите" in turn1["utterance"], (
+            f"Turn 1 should be about sleep, got: {turn1['utterance']}"
+        )
+        assert turn1["risk"] == "none", f"Turn 1 risk should be 'none', got: {turn1['risk']}"
+        assert isinstance(turn1["used_fragments"], list), "Turn 1 used_fragments should be a list"
+        assert len(turn1["used_fragments"]) > 0, (
+            "Turn 1 used_fragments should not be empty in vector mode"
+        )
 
         # Validate turn 2 (suicide risk question)
         turn2 = turns[1]
@@ -118,48 +112,34 @@ async def test_vector_smoke():
         assert "risk" in turn2, "Turn 2 missing 'risk'"
         assert "used_fragments" in turn2, "Turn 2 missing 'used_fragments'"
 
-        assert (
-            "суициде" in turn2["utterance"]
-        ), f"Turn 2 should be about suicide, got: {turn2['utterance']}"
-        assert (
-            turn2["risk"] == "acute"
-        ), f"Turn 2 risk should be 'acute', got: {turn2['risk']}"
-        assert isinstance(
-            turn2["used_fragments"], list
-        ), "Turn 2 used_fragments should be a list"
+        assert "суициде" in turn2["utterance"], (
+            f"Turn 2 should be about suicide, got: {turn2['utterance']}"
+        )
+        assert turn2["risk"] == "acute", f"Turn 2 risk should be 'acute', got: {turn2['risk']}"
+        assert isinstance(turn2["used_fragments"], list), "Turn 2 used_fragments should be a list"
 
         # Validate DB counts
         db_counts = report["db_counts"]
         expected_tables = ["cases", "kb_fragments", "sessions", "telemetry_turns"]
         for table in expected_tables:
             assert table in db_counts, f"DB counts missing '{table}'"
-            assert isinstance(
-                db_counts[table], int
-            ), f"DB count for '{table}' should be integer"
-            assert (
-                db_counts[table] >= 0
-            ), f"DB count for '{table}' should be non-negative"
+            assert isinstance(db_counts[table], int), f"DB count for '{table}' should be integer"
+            assert db_counts[table] >= 0, f"DB count for '{table}' should be non-negative"
 
         # Check that we have at least some data
         assert db_counts["cases"] >= 1, "Should have at least 1 case"
         assert db_counts["kb_fragments"] >= 1, "Should have at least 1 KB fragment"
         assert db_counts["sessions"] >= 1, "Should have at least 1 session"
-        assert (
-            db_counts["telemetry_turns"] >= 2
-        ), "Should have at least 2 telemetry turns"
+        assert db_counts["telemetry_turns"] >= 2, "Should have at least 2 telemetry turns"
 
         # Validate embed_stats
         embed_stats = report["embed_stats"]
         assert "processed" in embed_stats, "embed_stats missing 'processed'"
         assert "dim" in embed_stats, "embed_stats missing 'dim'"
-        assert isinstance(
-            embed_stats["processed"], int
-        ), "embed_stats['processed'] should be int"
+        assert isinstance(embed_stats["processed"], int), "embed_stats['processed'] should be int"
         assert isinstance(embed_stats["dim"], int), "embed_stats['dim'] should be int"
 
-        print(
-            f"✓ Vector smoke test passed: {db_counts['telemetry_turns']} turns recorded"
-        )
+        print(f"✓ Vector smoke test passed: {db_counts['telemetry_turns']} turns recorded")
         print(
             f"✓ Embeddings: {embed_stats['processed']} processed, {embed_stats['dim']} dimensions"
         )
@@ -214,9 +194,7 @@ async def test_vector_smoke_json_structure():
             except json.JSONDecodeError:
                 continue
 
-        assert (
-            report is not None
-        ), f"Could not find smoke test report in {len(lines)} lines"
+        assert report is not None, f"Could not find smoke test report in {len(lines)} lines"
         assert "status" in report, "JSON output should contain status field"
         assert "mode" in report, "JSON output should contain mode field"
         assert report["mode"] == "vector", "Mode should be 'vector'"

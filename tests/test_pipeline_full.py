@@ -36,16 +36,12 @@ async def test_turn_normal_flow(client):
 
     # Create case and session through API
     case_response = await client.post("/case", json=case_data)
-    assert (
-        case_response.status_code == 200
-    ), f"Case creation failed: {case_response.text}"
+    assert case_response.status_code == 200, f"Case creation failed: {case_response.text}"
     case_id = case_response.json()["case_id"]
 
     session_data = {"case_id": case_id}
     session_response = await client.post("/session", json=session_data)
-    assert (
-        session_response.status_code == 200
-    ), f"Session creation failed: {session_response.text}"
+    assert session_response.status_code == 200, f"Session creation failed: {session_response.text}"
     session_id = session_response.json()["session_id"]
 
     # Test turn: "Как вы спите последние недели?"
@@ -74,12 +70,10 @@ async def test_turn_normal_flow(client):
     assert "Plan:" in data["patient_reply"], "patient_reply should contain 'Plan:'"
     assert "eval_markers" in data
     assert "intent" in data["eval_markers"]
-    assert (
-        data["eval_markers"]["intent"] == "clarify"
-    ), f"Expected intent 'clarify', got {data['eval_markers']['intent']}"
-    assert (
-        data["risk_status"] == "none"
-    ), f"Expected risk_status 'none', got {data['risk_status']}"
+    assert data["eval_markers"]["intent"] == "clarify", (
+        f"Expected intent 'clarify', got {data['eval_markers']['intent']}"
+    )
+    assert data["risk_status"] == "none", f"Expected risk_status 'none', got {data['risk_status']}"
     assert "used_fragments" in data
     # Note: used_fragments can be empty if no KB fragments are available for the case
     assert isinstance(data["used_fragments"], list), "used_fragments should be a list"
@@ -120,16 +114,12 @@ async def test_turn_risk_flow(client):
 
     # Create case and session through API
     case_response = await client.post("/case", json=case_data)
-    assert (
-        case_response.status_code == 200
-    ), f"Case creation failed: {case_response.text}"
+    assert case_response.status_code == 200, f"Case creation failed: {case_response.text}"
     case_id = case_response.json()["case_id"]
 
     session_data = {"case_id": case_id}
     session_response = await client.post("/session", json=session_data)
-    assert (
-        session_response.status_code == 200
-    ), f"Session creation failed: {session_response.text}"
+    assert session_response.status_code == 200, f"Session creation failed: {session_response.text}"
     session_id = session_response.json()["session_id"]
 
     # Test turn: "Бывают ли мысли о суициде?"
@@ -154,18 +144,18 @@ async def test_turn_risk_flow(client):
     data = response.json()
 
     # Validate risk flow results
-    assert (
-        data["risk_status"] == "acute"
-    ), f"Expected risk_status 'acute', got {data['risk_status']}"
+    assert data["risk_status"] == "acute", (
+        f"Expected risk_status 'acute', got {data['risk_status']}"
+    )
     assert "eval_markers" in data
     assert "intent" in data["eval_markers"]
-    assert (
-        data["eval_markers"]["intent"] == "risk_check"
-    ), f"Expected intent 'risk_check', got {data['eval_markers']['intent']}"
+    assert data["eval_markers"]["intent"] == "risk_check", (
+        f"Expected intent 'risk_check', got {data['eval_markers']['intent']}"
+    )
     assert "patient_reply" in data
-    assert (
-        "Plan:1" in data["patient_reply"]
-    ), "patient_reply should contain 'Plan:1' (guard replaced content)"
+    assert "Plan:1" in data["patient_reply"], (
+        "patient_reply should contain 'Plan:1' (guard replaced content)"
+    )
 
 
 @pytest.mark.anyio
@@ -238,14 +228,10 @@ async def test_turn_fallback_on_error(monkeypatch, client):
     data = response.json()
 
     # Validate fallback response
-    assert (
-        data["patient_reply"] == "safe-fallback"
-    ), f"Expected 'safe-fallback', got {data['patient_reply']}"
-    assert (
-        data["risk_status"] == "none"
-    ), f"Expected risk_status 'none', got {data['risk_status']}"
+    assert data["patient_reply"] == "safe-fallback", (
+        f"Expected 'safe-fallback', got {data['patient_reply']}"
+    )
+    assert data["risk_status"] == "none", f"Expected risk_status 'none', got {data['risk_status']}"
     assert data["state_updates"] == {}, "state_updates should be empty dict in fallback"
-    assert (
-        data["used_fragments"] == []
-    ), "used_fragments should be empty list in fallback"
+    assert data["used_fragments"] == [], "used_fragments should be empty list in fallback"
     assert data["eval_markers"] == {}, "eval_markers should be empty dict in fallback"

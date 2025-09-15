@@ -13,9 +13,7 @@ from app.core.db import AsyncSessionLocal
 from app.core.tables import Case, KBFragment
 from app.orchestrator.nodes.retrieve import retrieve
 
-pytestmark = pytest.mark.skip(
-    reason="Async loop conflicts - full anyio migration needed"
-)
+pytestmark = pytest.mark.skip(reason="Async loop conflicts - full anyio migration needed")
 
 
 async def create_test_case_with_fragments():

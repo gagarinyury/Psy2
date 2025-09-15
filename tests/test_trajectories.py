@@ -29,17 +29,17 @@ async def test_session_trajectory_progress(client, db_session):
                             "id": "sleep",
                             "name": "Sleep Step",
                             "condition_tags": ["sleep"],
-                            "min_trust": 0.3
+                            "min_trust": 0.3,
                         },
                         {
                             "id": "mood",
                             "name": "Mood Step",
                             "condition_tags": ["mood"],
-                            "min_trust": 0.5
-                        }
-                    ]
+                            "min_trust": 0.5,
+                        },
+                    ],
                 }
-            ]
+            ],
         },
         "policies": {
             "disclosure_rules": {
@@ -58,7 +58,7 @@ async def test_session_trajectory_progress(client, db_session):
                 "tempo": "medium",
                 "length": "short",
             },
-        }
+        },
     }
 
     case_response = await client.post("/case", json=case_data)
@@ -173,17 +173,17 @@ async def test_session_trajectory_partial_completion(client, db_session):
                             "id": "low_trust_step",
                             "name": "Low Trust Step",
                             "condition_tags": ["anxiety"],
-                            "min_trust": 0.2
+                            "min_trust": 0.2,
                         },
                         {
                             "id": "high_trust_step",
                             "name": "High Trust Step",
                             "condition_tags": ["anxiety"],
-                            "min_trust": 0.8
-                        }
-                    ]
+                            "min_trust": 0.8,
+                        },
+                    ],
                 }
-            ]
+            ],
         },
         "policies": {
             "disclosure_rules": {
@@ -202,7 +202,7 @@ async def test_session_trajectory_partial_completion(client, db_session):
                 "tempo": "medium",
                 "length": "short",
             },
-        }
+        },
     }
 
     case_response = await client.post("/case", json=case_data)
@@ -273,11 +273,11 @@ async def test_session_trajectory_no_matching_tags(client, db_session):
                             "id": "specific_step",
                             "name": "Specific Step",
                             "condition_tags": ["very_specific_tag"],
-                            "min_trust": 0.1
+                            "min_trust": 0.1,
                         }
-                    ]
+                    ],
                 }
-            ]
+            ],
         },
         "policies": {
             "disclosure_rules": {
@@ -296,7 +296,7 @@ async def test_session_trajectory_no_matching_tags(client, db_session):
                 "tempo": "medium",
                 "length": "short",
             },
-        }
+        },
     }
 
     case_response = await client.post("/case", json=case_data)
@@ -365,7 +365,7 @@ async def test_session_trajectory_no_trajectories(client):
             "ddx": {"no_trajectory_case": 1.0},
             "red_flags": [],
             "hidden_facts": [],
-            "trajectories": []  # Empty trajectories
+            "trajectories": [],  # Empty trajectories
         },
         "policies": {
             "disclosure_rules": {
@@ -384,7 +384,7 @@ async def test_session_trajectory_no_trajectories(client):
                 "tempo": "medium",
                 "length": "short",
             },
-        }
+        },
     }
 
     case_response = await client.post("/case", json=case_data)

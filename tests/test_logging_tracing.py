@@ -25,6 +25,7 @@ async def test_json_logging_setup():
     try:
         setup_logging()
         from loguru import logger
+
         logger.info("Test logging message")
         # Basic test - if we get here, logging setup worked
         assert True
@@ -55,7 +56,7 @@ async def test_get_tracer():
         tracer = get_tracer("test-module")
         # Should get a tracer object
         assert tracer is not None
-        assert hasattr(tracer, 'start_as_current_span')
+        assert hasattr(tracer, "start_as_current_span")
     except Exception as e:
         pytest.fail(f"get_tracer failed: {e}")
 
@@ -75,16 +76,31 @@ async def test_pipeline_span_creation():
 
     with patch("app.orchestrator.pipeline.get_tracer", return_value=mock_tracer):
         # Mock database and dependencies to avoid actual DB calls
-        with patch("app.orchestrator.pipeline.select"), \
-             patch("app.orchestrator.pipeline.get_policies", return_value={}), \
-             patch("app.orchestrator.pipeline.normalize", return_value={"intent": "test", "topics": [], "risk_flags": [], "last_turn_summary": "test"}), \
-             patch("app.orchestrator.pipeline.retrieve", return_value=[]), \
-             patch("app.orchestrator.pipeline.get_case_truth", return_value={}), \
-             patch("app.orchestrator.pipeline.reason", return_value={"state_updates": {}, "telemetry": {"chosen_ids": []}}), \
-             patch("app.orchestrator.pipeline.guard", return_value={"safe_output": {"content_plan": ["test"]}, "risk_status": "none"}), \
-             patch("app.orchestrator.pipeline._record_telemetry"), \
-             patch("app.orchestrator.pipeline.update_trajectory_progress"):
-
+        with (
+            patch("app.orchestrator.pipeline.select"),
+            patch("app.orchestrator.pipeline.get_policies", return_value={}),
+            patch(
+                "app.orchestrator.pipeline.normalize",
+                return_value={
+                    "intent": "test",
+                    "topics": [],
+                    "risk_flags": [],
+                    "last_turn_summary": "test",
+                },
+            ),
+            patch("app.orchestrator.pipeline.retrieve", return_value=[]),
+            patch("app.orchestrator.pipeline.get_case_truth", return_value={}),
+            patch(
+                "app.orchestrator.pipeline.reason",
+                return_value={"state_updates": {}, "telemetry": {"chosen_ids": []}},
+            ),
+            patch(
+                "app.orchestrator.pipeline.guard",
+                return_value={"safe_output": {"content_plan": ["test"]}, "risk_status": "none"},
+            ),
+            patch("app.orchestrator.pipeline._record_telemetry"),
+            patch("app.orchestrator.pipeline.update_trajectory_progress"),
+        ):
             from app.orchestrator.pipeline import run_turn
 
             # Mock database session
@@ -104,8 +120,8 @@ async def test_pipeline_span_creation():
                     fatigue=0.2,
                     access_level=1,
                     risk_status="none",
-                    last_turn_summary="test"
-                )
+                    last_turn_summary="test",
+                ),
             )
 
             # Call run_turn - should not crash
@@ -134,21 +150,26 @@ async def test_deepseek_reasoning_span():
 
     # Mock DeepSeek client response
     mock_response = {
-        "choices": [{
-            "message": {
-                "content": json.dumps({
-                    "content_plan": ["Test response"],
-                    "style_directives": {"tempo": "medium", "length": "short"},
-                    "state_updates": {"trust_delta": 0.1},
-                    "telemetry": {"chosen_ids": []}
-                })
+        "choices": [
+            {
+                "message": {
+                    "content": json.dumps(
+                        {
+                            "content_plan": ["Test response"],
+                            "style_directives": {"tempo": "medium", "length": "short"},
+                            "state_updates": {"trust_delta": 0.1},
+                            "telemetry": {"chosen_ids": []},
+                        }
+                    )
+                }
             }
-        }]
+        ]
     }
 
-    with patch("app.orchestrator.nodes.reason_llm.get_tracer", return_value=mock_tracer), \
-         patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class:
-
+    with (
+        patch("app.orchestrator.nodes.reason_llm.get_tracer", return_value=mock_tracer),
+        patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class,
+    ):
         # Mock client instance and context manager
         mock_client = MagicMock()
         mock_client.reasoning.return_value = mock_response
@@ -156,7 +177,9 @@ async def test_deepseek_reasoning_span():
         mock_client_class.return_value.__aexit__ = MagicMock(return_value=None)
 
         # Mock prompt loading
-        with patch("app.orchestrator.nodes.reason_llm._load_reasoning_prompt", return_value="Test prompt"):
+        with patch(
+            "app.orchestrator.nodes.reason_llm._load_reasoning_prompt", return_value="Test prompt"
+        ):
             from app.orchestrator.nodes.reason_llm import reason_llm
 
             # Call reason_llm - should not crash
@@ -164,7 +187,7 @@ async def test_deepseek_reasoning_span():
                 case_truth={"dx_target": ["test"]},
                 session_state={"trust": 0.5},
                 candidates=[{"text": "test fragment"}],
-                policies={}
+                policies={},
             )
 
             # Verify basic functionality
@@ -189,15 +212,12 @@ async def test_deepseek_generation_span():
     mock_tracer.start_as_current_span.return_value = mock_span
 
     # Mock DeepSeek client response
-    mock_response = {
-        "choices": [{
-            "message": {"content": "Generated patient response"}
-        }]
-    }
+    mock_response = {"choices": [{"message": {"content": "Generated patient response"}}]}
 
-    with patch("app.orchestrator.nodes.generate_llm.get_tracer", return_value=mock_tracer), \
-         patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class:
-
+    with (
+        patch("app.orchestrator.nodes.generate_llm.get_tracer", return_value=mock_tracer),
+        patch("app.orchestrator.nodes.generate_llm.DeepSeekClient") as mock_client_class,
+    ):
         # Mock client instance and context manager
         mock_client = MagicMock()
         mock_client.generate.return_value = mock_response
@@ -205,14 +225,17 @@ async def test_deepseek_generation_span():
         mock_client_class.return_value.__aexit__ = MagicMock(return_value=None)
 
         # Mock prompt loading
-        with patch("app.orchestrator.nodes.generate_llm._load_generation_prompt", return_value="Test prompt"):
+        with patch(
+            "app.orchestrator.nodes.generate_llm._load_generation_prompt",
+            return_value="Test prompt",
+        ):
             from app.orchestrator.nodes.generate_llm import generate_llm
 
             # Call generate_llm - should not crash
             result = await generate_llm(
                 content_plan=["Test content"],
                 style_directives={"tempo": "medium", "length": "short"},
-                patient_context="Test patient"
+                patient_context="Test patient",
             )
 
             # Verify basic functionality

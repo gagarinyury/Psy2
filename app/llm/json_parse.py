@@ -28,9 +28,7 @@ def extract_json_blocks(text: str) -> List[str]:
     candidates.extend(json_matches)
 
     # 2. Extract any ``` code blocks (medium priority)
-    general_code_pattern = (
-        r"```[^j\n]*\n(.*?)\n```"  # Not starting with 'j' to avoid json blocks
-    )
+    general_code_pattern = r"```[^j\n]*\n(.*?)\n```"  # Not starting with 'j' to avoid json blocks
     general_matches = re.findall(general_code_pattern, text, re.DOTALL)
     candidates.extend(general_matches)
 
@@ -108,9 +106,7 @@ def parse_llm_json(text: str) -> Dict[str, Any]:
         # Remove common issues
         candidate = re.sub(r",\s*}", "}", candidate)  # Remove trailing commas
         candidate = re.sub(r",\s*]", "]", candidate)  # Remove trailing commas in arrays
-        candidate = re.sub(
-            r"//.*?$", "", candidate, flags=re.MULTILINE
-        )  # Remove // comments
+        candidate = re.sub(r"//.*?$", "", candidate, flags=re.MULTILINE)  # Remove // comments
 
         try:
             result = json.loads(candidate)

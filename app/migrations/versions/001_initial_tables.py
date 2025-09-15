@@ -27,9 +27,7 @@ def upgrade() -> None:
     # Create cases table
     op.create_table(
         "cases",
-        sa.Column(
-            "id", postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-        ),
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
         sa.Column("case_truth", postgresql.JSONB(), nullable=False),
         sa.Column("policies", postgresql.JSONB(), nullable=False),
         sa.Column("version", sa.String(length=50), nullable=True),
@@ -45,9 +43,7 @@ def upgrade() -> None:
     # Create kb_fragments table
     op.create_table(
         "kb_fragments",
-        sa.Column(
-            "id", postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-        ),
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
         sa.Column("case_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("type", sa.String(length=100), nullable=False),
         sa.Column("text", sa.Text(), nullable=False),
@@ -65,9 +61,7 @@ def upgrade() -> None:
     # Create sessions table
     op.create_table(
         "sessions",
-        sa.Column(
-            "id", postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-        ),
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
         sa.Column("case_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("session_state", postgresql.JSONB(), nullable=False),
         sa.Column(
@@ -114,9 +108,7 @@ def upgrade() -> None:
     )
 
     # Create GIN indexes on JSONB columns
-    op.create_index(
-        "ix_cases_case_truth", "cases", ["case_truth"], postgresql_using="gin"
-    )
+    op.create_index("ix_cases_case_truth", "cases", ["case_truth"], postgresql_using="gin")
     op.create_index("ix_cases_policies", "cases", ["policies"], postgresql_using="gin")
     op.create_index(
         "ix_kb_fragments_metadata", "kb_fragments", ["metadata"], postgresql_using="gin"
@@ -145,12 +137,8 @@ def upgrade() -> None:
         ["eval_markers"],
         postgresql_using="gin",
     )
-    op.create_index(
-        "ix_telemetry_timings", "telemetry_turns", ["timings"], postgresql_using="gin"
-    )
-    op.create_index(
-        "ix_telemetry_costs", "telemetry_turns", ["costs"], postgresql_using="gin"
-    )
+    op.create_index("ix_telemetry_timings", "telemetry_turns", ["timings"], postgresql_using="gin")
+    op.create_index("ix_telemetry_costs", "telemetry_turns", ["costs"], postgresql_using="gin")
 
     # Create vector index on embeddings (HNSW for better performance)
     op.execute(

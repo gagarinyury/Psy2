@@ -21,7 +21,7 @@ class MockTokenBucketLimiter:
         print(f"DEBUG: key={key}, capacity={self.capacity}, refill_per_sec={self.refill_per_sec}")
 
         # Get current bucket state
-        bucket_data = await self.redis.hmget(key, 'tokens', 'ts')
+        bucket_data = await self.redis.hmget(key, "tokens", "ts")
         print(f"DEBUG: bucket_data={bucket_data}")
 
         # Handle bytes returned by fakeredis
@@ -44,7 +44,7 @@ class MockTokenBucketLimiter:
 
         # Consume token
         tokens -= 1
-        await self.redis.hset(key, mapping={'tokens': tokens, 'ts': current_time})
+        await self.redis.hset(key, mapping={"tokens": tokens, "ts": current_time})
         await self.redis.expire(key, 120)
         print(f"DEBUG: ALLOWED - tokens after consumption: {tokens}")
         return True
@@ -63,7 +63,7 @@ async def test_mock_limiter():
 
     # Test 6 requests
     for i in range(6):
-        print(f"\n--- Request {i+1} ---")
+        print(f"\n--- Request {i + 1} ---")
         result = await limiter.allow(identifier)
         print(f"Result: {result}\n")
 

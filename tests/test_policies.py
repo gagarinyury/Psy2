@@ -84,9 +84,7 @@ async def test_policies_valid_load():
 
         finally:
             # Очищаем данные после теста
-            await session.execute(
-                select(KBFragment).where(KBFragment.case_id == case_id)
-            )
+            await session.execute(select(KBFragment).where(KBFragment.case_id == case_id))
             kb_result = await session.execute(
                 select(KBFragment).where(KBFragment.case_id == case_id)
             )
@@ -151,9 +149,7 @@ async def test_policies_invalid_rejected():
     }
 
     # Создаем временный файл
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".json", delete=False, encoding="utf-8"
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(invalid_case_data, f, ensure_ascii=False)
         temp_file_path = f.name
 
@@ -190,7 +186,5 @@ def test_helpers():
     assert effective_disclosure_level(0.5, rules) == "full"
     assert effective_disclosure_level(0.3, rules) == "partial"
 
-    rules_no_partial = DisclosureRules(
-        min_trust_for_gated=0.4, partial_if_low_trust=False
-    )
+    rules_no_partial = DisclosureRules(min_trust_for_gated=0.4, partial_if_low_trust=False)
     assert effective_disclosure_level(0.3, rules_no_partial) == "none"

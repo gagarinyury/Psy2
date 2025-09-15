@@ -11,9 +11,9 @@ async def test_no_session_truly_uses_ip_check(client, monkeypatch, app):
     r = FakeRedis()
     app.state.redis = r
 
-    monkeypatch.setattr(settings, 'RATE_LIMIT_ENABLED', True)
-    monkeypatch.setattr(settings, 'RATE_LIMIT_IP_PER_MIN', 1)  # Лимит IP = 1
-    monkeypatch.setattr(settings, 'RATE_LIMIT_SESSION_PER_MIN', 5)
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    monkeypatch.setattr(settings, "RATE_LIMIT_IP_PER_MIN", 1)  # Лимит IP = 1
+    monkeypatch.setattr(settings, "RATE_LIMIT_SESSION_PER_MIN", 5)
 
     # Мокаем функцию allow() чтобы отследить её вызовы
     calls = []
@@ -43,9 +43,16 @@ async def test_no_session_truly_uses_ip_check(client, monkeypatch, app):
     headers = {"content-type": "application/json"}  # БЕЗ X-Session-ID!
     body = {
         "therapist_utterance": "ok",
-        "session_state": {"affect": "n", "trust": 0.5, "fatigue": 0, "access_level": 1, "risk_status": "none", "last_turn_summary": ""},
+        "session_state": {
+            "affect": "n",
+            "trust": 0.5,
+            "fatigue": 0,
+            "access_level": 1,
+            "risk_status": "none",
+            "last_turn_summary": "",
+        },
         "case_id": "00000000-0000-0000-0000-000000000000",
-        "options": {}
+        "options": {},
     }
 
     # 1-й запрос
@@ -69,12 +76,18 @@ async def test_no_session_truly_uses_ip_check(client, monkeypatch, app):
     print(f"Session вызовы: {len(session_calls)}")
 
     # КРИТИЧЕСКИЕ ПРОВЕРКИ
-    assert len(session_calls) == 0, f"Session НЕ должен вызываться без session_id! Получили: {session_calls}"
-    assert len(ip_calls) == 2, f"Должно быть 2 IP вызова (по одному на запрос), получили: {ip_calls}"
+    assert len(session_calls) == 0, (
+        f"Session НЕ должен вызываться без session_id! Получили: {session_calls}"
+    )
+    assert len(ip_calls) == 2, (
+        f"Должно быть 2 IP вызова (по одному на запрос), получили: {ip_calls}"
+    )
 
     # Проверяем ответы
     assert resp1.status_code != 429, f"1-й запрос должен пройти, получили: {resp1.status_code}"
-    assert resp2.status_code == 429, f"2-й запрос должен быть заблокирован, получили: {resp2.status_code}"
+    assert resp2.status_code == 429, (
+        f"2-й запрос должен быть заблокирован, получили: {resp2.status_code}"
+    )
 
     if resp2.status_code == 429:
         json_resp = resp2.json()

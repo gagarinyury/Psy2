@@ -156,9 +156,7 @@ class TestNormalize:
 
         for utterance in test_cases:
             result = normalize(utterance, {})
-            assert (
-                "suicide_ideation" in result["risk_flags"]
-            ), f"Failed for: {utterance}"
+            assert "suicide_ideation" in result["risk_flags"], f"Failed for: {utterance}"
 
     def test_no_risk_flags(self):
         """Test that normal utterances don't trigger risk flags."""
@@ -178,9 +176,7 @@ class TestNormalize:
 
     def test_last_turn_summary_long_text_truncation(self):
         """Test summary truncation for text over 200 characters."""
-        long_text = (
-            "Это очень длинный текст, который превышает лимит в 200 символов. " * 5
-        )
+        long_text = "Это очень длинный текст, который превышает лимит в 200 символов. " * 5
         result = normalize(long_text, {})
 
         assert len(result["last_turn_summary"]) == 203  # 200 + "..."

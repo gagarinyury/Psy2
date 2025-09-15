@@ -117,9 +117,7 @@ async def test_reason_llm_invalid_json_fallback():
 
     # Mock ответ с некорректным JSON
     mock_response = {
-        "choices": [
-            {"message": {"content": "This is not valid JSON content from the model"}}
-        ]
+        "choices": [{"message": {"content": "This is not valid JSON content from the model"}}]
     }
 
     with patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class:
@@ -133,9 +131,7 @@ async def test_reason_llm_invalid_json_fallback():
         # Проверяем что использовался fallback
         assert result["content_plan"] == ["I'm feeling a bit confused right now"]
         assert result["style_directives"]["tempo"] == "calm"
-        assert (
-            result["state_updates"]["trust_delta"] == -0.1
-        )  # Отрицательный при fallback
+        assert result["state_updates"]["trust_delta"] == -0.1  # Отрицательный при fallback
         assert result["telemetry"]["chosen_ids"] == []
 
 
@@ -178,9 +174,7 @@ async def test_reason_llm_api_exception_fallback():
     # Mock исключение при вызове API
     with patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class:
         mock_client = MagicMock()
-        mock_client.reasoning = AsyncMock(
-            side_effect=Exception("API connection failed")
-        )
+        mock_client.reasoning = AsyncMock(side_effect=Exception("API connection failed"))
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
@@ -209,9 +203,7 @@ async def test_reason_llm_response_validation():
                     "content": json.dumps(
                         {
                             "content_plan": "Just a string instead of array",  # Неправильный тип
-                            "style_directives": {
-                                "tempo": "medium"
-                            },  # Отсутствует length
+                            "style_directives": {"tempo": "medium"},  # Отсутствует length
                             # Отсутствуют state_updates и telemetry
                         }
                     )

@@ -36,17 +36,13 @@ async def test_pipeline_turn_integration(client):
 
     # Create case
     case_response = await client.post("/case", json=case_data)
-    assert (
-        case_response.status_code == 200
-    ), f"Case creation failed: {case_response.text}"
+    assert case_response.status_code == 200, f"Case creation failed: {case_response.text}"
     case_id = case_response.json()["case_id"]
 
     # Create session for the case
     session_data = {"case_id": case_id}
     session_response = await client.post("/session", json=session_data)
-    assert (
-        session_response.status_code == 200
-    ), f"Session creation failed: {session_response.text}"
+    assert session_response.status_code == 200, f"Session creation failed: {session_response.text}"
     session_id = session_response.json()["session_id"]
 
     # Test 1: Normal phrase about sleep
@@ -72,16 +68,12 @@ async def test_pipeline_turn_integration(client):
 
     # Validate Test 1 requirements
     assert "patient_reply" in turn_response
-    assert (
-        "Plan:" in turn_response["patient_reply"]
-    ), "patient_reply should contain 'Plan:'"
-    assert (
-        turn_response["risk_status"] == "none"
-    ), f"Expected risk_status 'none', got {turn_response['risk_status']}"
+    assert "Plan:" in turn_response["patient_reply"], "patient_reply should contain 'Plan:'"
+    assert turn_response["risk_status"] == "none", (
+        f"Expected risk_status 'none', got {turn_response['risk_status']}"
+    )
     assert "used_fragments" in turn_response
-    assert isinstance(
-        turn_response["used_fragments"], list
-    ), "used_fragments should be a list"
+    assert isinstance(turn_response["used_fragments"], list), "used_fragments should be a list"
 
     # Validate response structure
     assert "state_updates" in turn_response
@@ -109,14 +101,14 @@ async def test_pipeline_turn_integration(client):
     turn_response = response.json()
 
     # Validate Test 2 requirements
-    assert (
-        turn_response["risk_status"] == "acute"
-    ), f"Expected risk_status 'acute', got {turn_response['risk_status']}"
+    assert turn_response["risk_status"] == "acute", (
+        f"Expected risk_status 'acute', got {turn_response['risk_status']}"
+    )
     assert "eval_markers" in turn_response
     assert "intent" in turn_response["eval_markers"]
-    assert (
-        turn_response["eval_markers"]["intent"] == "risk_check"
-    ), f"Expected intent 'risk_check', got {turn_response['eval_markers']['intent']}"
+    assert turn_response["eval_markers"]["intent"] == "risk_check", (
+        f"Expected intent 'risk_check', got {turn_response['eval_markers']['intent']}"
+    )
 
     # Validate response structure for risk scenario
     assert "patient_reply" in turn_response
@@ -188,9 +180,7 @@ async def test_pipeline_turn_sleep_scenario(client):
     data = response.json()
 
     # Detailed validation
-    assert data["patient_reply"].startswith(
-        "Plan:"
-    ), "patient_reply should start with 'Plan:'"
+    assert data["patient_reply"].startswith("Plan:"), "patient_reply should start with 'Plan:'"
     assert data["risk_status"] == "none"
     assert isinstance(data["used_fragments"], list)
     assert isinstance(data["state_updates"], dict)

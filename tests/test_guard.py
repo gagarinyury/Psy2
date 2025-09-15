@@ -57,9 +57,7 @@ class TestGuard:
         assert result["risk_status"] == "acute"
 
         # Content plan should be replaced with risk protocol message
-        assert result["safe_output"]["content_plan"] == [
-            "[Риск-триггер: обращение к протоколу]"
-        ]
+        assert result["safe_output"]["content_plan"] == ["[Риск-триггер: обращение к протоколу]"]
 
         # Tempo should be overridden to calm
         assert result["safe_output"]["style_directives"]["tempo"] == "calm"
@@ -128,9 +126,7 @@ class TestGuard:
         result = guard(reason_output, policies, risk_flags)
 
         assert result["safe_output"]["style_directives"]["tempo"] == "calm"
-        assert (
-            result["safe_output"]["style_directives"]["length"] == "short"
-        )  # preserved
+        assert result["safe_output"]["style_directives"]["length"] == "short"  # preserved
 
         # Test with missing style_directives
         reason_output_no_style = {
@@ -163,9 +159,7 @@ class TestGuard:
         assert result["risk_status"] == "acute"
 
         # Content should be filtered same way
-        assert result["safe_output"]["content_plan"] == [
-            "[Риск-триггер: обращение к протоколу]"
-        ]
+        assert result["safe_output"]["content_plan"] == ["[Риск-триггер: обращение к протоколу]"]
         assert result["safe_output"]["style_directives"]["tempo"] == "calm"
 
     def test_guard_empty_reason_output(self):
@@ -187,9 +181,7 @@ class TestGuard:
         risk_flags = ["suicide_ideation"]
         result = guard(None, policies, risk_flags)
         assert result["risk_status"] == "acute"
-        assert result["safe_output"]["content_plan"] == [
-            "[Риск-триггер: обращение к протоколу]"
-        ]
+        assert result["safe_output"]["content_plan"] == ["[Риск-триггер: обращение к протоколу]"]
         assert result["safe_output"]["style_directives"]["tempo"] == "calm"
 
     def test_guard_empty_content_plan(self):
@@ -208,9 +200,7 @@ class TestGuard:
 
         assert result["risk_status"] == "acute"
         # Should still replace empty content_plan with risk message
-        assert result["safe_output"]["content_plan"] == [
-            "[Риск-триггер: обращение к протоколу]"
-        ]
+        assert result["safe_output"]["content_plan"] == ["[Риск-триггер: обращение к протоколу]"]
         assert result["safe_output"]["style_directives"]["tempo"] == "calm"
 
     def test_guard_deep_copy_behavior(self):
@@ -236,9 +226,7 @@ class TestGuard:
         assert original_reason_output["style_directives"]["tempo"] == "fast"
 
         # Result should be modified
-        assert result["safe_output"]["content_plan"] == [
-            "[Риск-триггер: обращение к протоколу]"
-        ]
+        assert result["safe_output"]["content_plan"] == ["[Риск-триггер: обращение к протоколу]"]
         assert result["safe_output"]["style_directives"]["tempo"] == "calm"
 
     def test_guard_return_structure(self):

@@ -116,7 +116,7 @@ async def update_trajectory_progress(
             # Get current session trajectory record
             trajectory_query = select(SessionTrajectory).where(
                 SessionTrajectory.session_id == uuid.UUID(session_id),
-                SessionTrajectory.trajectory_id == trajectory.id
+                SessionTrajectory.trajectory_id == trajectory.id,
             )
             trajectory_result = await db.execute(trajectory_query)
             session_trajectory = trajectory_result.scalar_one_or_none()
@@ -152,14 +152,16 @@ async def update_trajectory_progress(
             if new_completed_steps:
                 if session_trajectory:
                     # Update existing record
-                    session_trajectory.completed_steps = existing_completed_steps + new_completed_steps
+                    session_trajectory.completed_steps = (
+                        existing_completed_steps + new_completed_steps
+                    )
                     session_trajectory.updated_at = func.now()
                 else:
                     # Create new session trajectory record
                     session_trajectory = SessionTrajectory(
                         session_id=uuid.UUID(session_id),
                         trajectory_id=trajectory.id,
-                        completed_steps=new_completed_steps
+                        completed_steps=new_completed_steps,
                     )
                     db.add(session_trajectory)
 
@@ -243,24 +245,22 @@ async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
                     # Use LLM generation for natural patient response
                     content_plan = g["safe_output"]["content_plan"]
                     style_directives = g["safe_output"]["style_directives"]
-                    patient_context = f"Patient with {case_truth.get('dx_target', ['unknown condition'])[0]}"
+                    patient_context = (
+                        f"Patient with {case_truth.get('dx_target', ['unknown condition'])[0]}"
+                    )
 
                     patient_reply = await generate_llm(
                         content_plan, style_directives, patient_context
                     )
                     logger.info("Used DeepSeek generation")
                 except Exception as e:
-                    logger.error(
-                        f"DeepSeek generation failed, falling back to plan format: {e}"
-                    )
-                    patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status']=='acute' else 'none'}"
+                    logger.error(f"DeepSeek generation failed, falling back to plan format: {e}")
+                    patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status'] == 'acute' else 'none'}"
             else:
-                patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status']=='acute' else 'none'}"
+                patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status'] == 'acute' else 'none'}"
 
             # State updates - combine from reason and normalize
-            state_updates = r["state_updates"] | {
-                "last_turn_summary": n["last_turn_summary"]
-            }
+            state_updates = r["state_updates"] | {"last_turn_summary": n["last_turn_summary"]}
 
             # Fragment IDs from reason telemetry
             used_fragments = r["telemetry"].get("chosen_ids", [])
@@ -328,9 +328,9 @@ async def _record_telemetry(
     """
     try:
         # Get current turn number (MAX + 1)
-        turn_no_query = select(
-            func.coalesce(func.max(TelemetryTurn.turn_no), 0) + 1
-        ).where(TelemetryTurn.session_id == session_id)
+        turn_no_query = select(func.coalesce(func.max(TelemetryTurn.turn_no), 0) + 1).where(
+            TelemetryTurn.session_id == session_id
+        )
         turn_no_result = await db.execute(turn_no_query)
         turn_no = turn_no_result.scalar()
 

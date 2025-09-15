@@ -89,9 +89,7 @@ async def test_custom_trigger_keywords_guarantee_risk(client: AsyncClient):
 
     # Тест 3: Фраза с другим кастомным триггером
     turn_request = turn_template.copy()
-    turn_request["therapist_utterance"] = (
-        "Подскажите про кастомный_триггер и ваше состояние"
-    )
+    turn_request["therapist_utterance"] = "Подскажите про кастомный_триггер и ваше состояние"
 
     response = await client.post("/turn", json=turn_request)
     assert response.status_code == 200
@@ -256,6 +254,6 @@ async def test_case_insensitive_trigger_matching(client: AsyncClient):
         assert response.status_code == 200
 
         result = response.json()
-        assert (
-            result["risk_status"] == expected_risk
-        ), f"Failed for '{utterance}': expected {expected_risk}, got {result['risk_status']}"
+        assert result["risk_status"] == expected_risk, (
+            f"Failed for '{utterance}': expected {expected_risk}, got {result['risk_status']}"
+        )

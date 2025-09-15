@@ -10,9 +10,7 @@ from app.main import app
 @pytest.mark.anyio
 async def test_case_session_turn_flow():
     """Test complete flow: POST /case -> POST /session -> POST /turn"""
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # 1. POST /case с валидным CaseTruth → 200, case_id UUID
         case_data = {
             "case_truth": {

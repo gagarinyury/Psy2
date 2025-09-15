@@ -223,9 +223,7 @@ async def test_high_trust_access_all_gated(test_case_with_fragments, isolated_db
             found_high_trust = True
             assert fragment["metadata"]["availability"] == "gated"
 
-    assert (
-        found_high_trust
-    ), "High-trust gated фрагмент должен быть доступен при trust=0.9"
+    assert found_high_trust, "High-trust gated фрагмент должен быть доступен при trust=0.9"
 
 
 @pytest.mark.skip(reason="Async loop conflicts - pending full anyio migration")
@@ -337,9 +335,7 @@ async def test_nonexistent_case_returns_empty(isolated_db):
 
 @pytest.mark.skip(reason="Async loop conflicts - pending full anyio migration")
 @pytest.mark.anyio
-async def test_empty_topics_returns_available_fragments(
-    test_case_with_fragments, isolated_db
-):
+async def test_empty_topics_returns_available_fragments(test_case_with_fragments, isolated_db):
     """При пустых topics возвращает доступные фрагменты"""
     case_id = test_case_with_fragments
     session = isolated_db

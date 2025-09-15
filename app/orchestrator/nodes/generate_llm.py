@@ -19,12 +19,7 @@ tracer = get_tracer(__name__)
 
 def _load_generation_prompt() -> str:
     """Load the generation system prompt from file."""
-    prompt_path = (
-        Path(__file__).parent.parent.parent
-        / "llm"
-        / "prompts"
-        / "generation.prompt.txt"
-    )
+    prompt_path = Path(__file__).parent.parent.parent / "llm" / "prompts" / "generation.prompt.txt"
     try:
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read().strip()
@@ -123,9 +118,7 @@ async def generate_llm(
             first_sentence = sentences[0].strip()
             if first_sentence:
                 content = (
-                    first_sentence + "."
-                    if not first_sentence.endswith(".")
-                    else first_sentence
+                    first_sentence + "." if not first_sentence.endswith(".") else first_sentence
                 )
         elif length_style == "long" and sentence_count > 3:
             # Take first 3 sentences

@@ -70,17 +70,13 @@ async def retrieve(
             )
 
     except SQLAlchemyError as e:
-        logger.exception(
-            f"Database error in retrieve: case_id={case_id}, error={str(e)}"
-        )
+        logger.exception(f"Database error in retrieve: case_id={case_id}, error={str(e)}")
         return []
     except ValueError as e:
         logger.exception(f"Invalid case_id format: case_id={case_id}, error={str(e)}")
         raise
     except Exception as e:
-        logger.exception(
-            f"Unexpected error in retrieve: case_id={case_id}, error={str(e)}"
-        )
+        logger.exception(f"Unexpected error in retrieve: case_id={case_id}, error={str(e)}")
         raise
 
 
@@ -142,9 +138,7 @@ async def _metadata_retrieve(
 
     # Add noise with 20% probability
     if random.random() < 0.2 and retrieved_fragments:
-        noise_fragment = await _get_random_public_fragment(
-            db, case_id, topics, trust_level
-        )
+        noise_fragment = await _get_random_public_fragment(db, case_id, topics, trust_level)
         if noise_fragment and len(retrieved_fragments) < top_k:
             retrieved_fragments.append(noise_fragment)
 

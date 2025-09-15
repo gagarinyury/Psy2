@@ -58,9 +58,7 @@ async def get_fragments_for_embedding(
     result = await session.execute(query)
     fragments = result.scalars().all()
 
-    logger.debug(
-        "Retrieved fragments for embedding", case_id=str(case_id), count=len(fragments)
-    )
+    logger.debug("Retrieved fragments for embedding", case_id=str(case_id), count=len(fragments))
 
     return list(fragments)
 
@@ -147,9 +145,7 @@ async def process_embeddings_for_case(case_id: str, batch_size: int = 128) -> di
         # Обрабатываем батчами
         while True:
             # Получаем следующий батч фрагментов без эмбеддингов
-            fragments = await get_fragments_for_embedding(
-                session, case_uuid, batch_size
-            )
+            fragments = await get_fragments_for_embedding(session, case_uuid, batch_size)
 
             if not fragments:
                 logger.info("No more fragments to process")
@@ -227,9 +223,7 @@ def cli():
 
 @cli.command()
 @click.option("--case-id", required=True, help="UUID случая для обработки эмбеддингов")
-@click.option(
-    "--batch", default=128, help="Размер батча для обработки (по умолчанию 128)"
-)
+@click.option("--batch", default=128, help="Размер батча для обработки (по умолчанию 128)")
 def run(case_id: str, batch: int):
     """
     Создает эмбеддинги для всех KB фрагментов указанного случая.
@@ -256,9 +250,7 @@ def run(case_id: str, batch: int):
         click.echo(f"  Embedding dimension: {stats['dimension']}")
 
         if stats["failed"] > 0:
-            click.echo(
-                f"⚠ Warning: {stats['failed']} fragments failed to process", err=True
-            )
+            click.echo(f"⚠ Warning: {stats['failed']} fragments failed to process", err=True)
             sys.exit(1)
 
     except KBEmbedError as e:

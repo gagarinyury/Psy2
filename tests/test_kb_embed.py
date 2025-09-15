@@ -29,7 +29,9 @@ class TestEmbeddings:
         }
 
         result = _compact_metadata(metadata)
-        expected = "topic:symptoms | availability:public | emotion:neutral | tags:sleep,mood,anxiety"
+        expected = (
+            "topic:symptoms | availability:public | emotion:neutral | tags:sleep,mood,anxiety"
+        )
         assert result == expected
 
         # Частичные метаданные
@@ -181,9 +183,7 @@ class TestKBEmbedCLI:
 
             # Пытаемся "обновить" фрагмент (имитируя CLI операцию)
             # В реальности CLI не должен трогать уже обработанные фрагменты
-            fragments_no_embedding = await get_fragments_for_embedding(
-                session, fragment.case_id
-            )
+            fragments_no_embedding = await get_fragments_for_embedding(session, fragment.case_id)
 
             # Проверяем что фрагмент с эмбеддингом не попал в список для обработки
             fragment_ids_no_embedding = [f.id for f in fragments_no_embedding]
@@ -239,9 +239,7 @@ class TestKBEmbedCLI:
 
                 try:
                     # Запускаем обработку
-                    stats = await process_embeddings_for_case(
-                        str(test_case_id), batch_size=10
-                    )
+                    stats = await process_embeddings_for_case(str(test_case_id), batch_size=10)
 
                     # Проверяем статистику
                     assert stats["processed"] == 2

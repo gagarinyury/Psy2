@@ -10,7 +10,7 @@ async def debug_redis():
     print("Testing fakeredis behavior...")
 
     # Test HMGET on non-existent key
-    result = await redis_client.hmget(key, 'tokens', 'ts')
+    result = await redis_client.hmget(key, "tokens", "ts")
     print(f"HMGET on non-existent key: {result}")
     print(f"Type: {type(result)}")
     print(f"Length: {len(result)}")
@@ -22,8 +22,8 @@ async def debug_redis():
     print(f"result[1] is None: {result[1] is None}")
 
     # Set some data and try again
-    await redis_client.hmset(key, {'tokens': 5.0, 'ts': 1000.0})
-    result2 = await redis_client.hmget(key, 'tokens', 'ts')
+    await redis_client.hmset(key, {"tokens": 5.0, "ts": 1000.0})
+    result2 = await redis_client.hmget(key, "tokens", "ts")
     print(f"HMGET after setting data: {result2}")
 
     await redis_client.aclose()

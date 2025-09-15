@@ -47,17 +47,13 @@ async def create_test_case_and_session(client):
 
     # Create case
     case_response = await client.post("/case", json=case_data)
-    assert (
-        case_response.status_code == 200
-    ), f"Case creation failed: {case_response.text}"
+    assert case_response.status_code == 200, f"Case creation failed: {case_response.text}"
     case_id = case_response.json()["case_id"]
 
     # Create session
     session_data = {"case_id": case_id}
     session_response = await client.post("/session", json=session_data)
-    assert (
-        session_response.status_code == 200
-    ), f"Session creation failed: {session_response.text}"
+    assert session_response.status_code == 200, f"Session creation failed: {session_response.text}"
     session_id = session_response.json()["session_id"]
 
     return case_id, session_id
@@ -82,18 +78,16 @@ async def test_reason_valid_json(client):
     async def fake_reasoning(*args, **kwargs):
         return {
             "choices": [
-                {
-                    "message": {
-                        "reasoning_content": f"```json\n{json.dumps(mock_payload)}\n```"
-                    }
-                }
+                {"message": {"reasoning_content": f"```json\n{json.dumps(mock_payload)}\n```"}}
             ]
         }
 
     # Enable DeepSeek reasoning, disable generation
-    with patch.object(settings, "USE_DEEPSEEK_REASON", True), patch.object(
-        settings, "USE_DEEPSEEK_GEN", False
-    ), patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class:
+    with (
+        patch.object(settings, "USE_DEEPSEEK_REASON", True),
+        patch.object(settings, "USE_DEEPSEEK_GEN", False),
+        patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class,
+    ):
         mock_client = MagicMock()
         mock_client.reasoning = AsyncMock(side_effect=fake_reasoning)
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
@@ -163,9 +157,11 @@ async def test_reason_garbage_fallback(client):
         return {"choices": [{"message": {"content": "okay this is garbage response"}}]}
 
     # Enable DeepSeek reasoning, disable generation
-    with patch.object(settings, "USE_DEEPSEEK_REASON", True), patch.object(
-        settings, "USE_DEEPSEEK_GEN", False
-    ), patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class:
+    with (
+        patch.object(settings, "USE_DEEPSEEK_REASON", True),
+        patch.object(settings, "USE_DEEPSEEK_GEN", False),
+        patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class,
+    ):
         mock_client = MagicMock()
         mock_client.reasoning = AsyncMock(side_effect=fake_reasoning)
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
@@ -226,25 +222,21 @@ async def test_reason_extreme_values_normalized(client):
             "length": "huge",
         },  # Некорректные значения
         "state_updates": {"trust_delta": 9, "fatigue_delta": -5},  # Вне границ
-        "telemetry": {
-            "chosen_ids": ["kb999", "kb1", "kb1"]
-        },  # Дубликаты и несуществующие
+        "telemetry": {"chosen_ids": ["kb999", "kb1", "kb1"]},  # Дубликаты и несуществующие
     }
 
     async def fake_reasoning(*args, **kwargs):
         return {
             "choices": [
-                {
-                    "message": {
-                        "reasoning_content": f"```json\n{json.dumps(extreme_payload)}\n```"
-                    }
-                }
+                {"message": {"reasoning_content": f"```json\n{json.dumps(extreme_payload)}\n```"}}
             ]
         }
 
-    with patch.object(settings, "USE_DEEPSEEK_REASON", True), patch.object(
-        settings, "USE_DEEPSEEK_GEN", False
-    ), patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class:
+    with (
+        patch.object(settings, "USE_DEEPSEEK_REASON", True),
+        patch.object(settings, "USE_DEEPSEEK_GEN", False),
+        patch("app.orchestrator.nodes.reason_llm.DeepSeekClient") as mock_client_class,
+    ):
         mock_client = MagicMock()
         mock_client.reasoning = AsyncMock(side_effect=fake_reasoning)
         mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_client)
@@ -285,14 +277,10 @@ async def test_reason_extreme_values_normalized(client):
         fatigue_delta = result["state_updates"]["fatigue_delta"]
 
         # trust_delta должно быть в [-0.2, 0.2]
-        assert (
-            -0.2 <= trust_delta <= 0.2
-        ), f"trust_delta {trust_delta} not in [-0.2, 0.2]"
+        assert -0.2 <= trust_delta <= 0.2, f"trust_delta {trust_delta} not in [-0.2, 0.2]"
 
         # fatigue_delta должно быть в [0.0, 0.2]
-        assert (
-            0.0 <= fatigue_delta <= 0.2
-        ), f"fatigue_delta {fatigue_delta} not in [0.0, 0.2]"
+        assert 0.0 <= fatigue_delta <= 0.2, f"fatigue_delta {fatigue_delta} not in [0.0, 0.2]"
 
         # 4. Система не упала и вернула корректный ответ
         assert "eval_markers" in result
