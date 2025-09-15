@@ -5,10 +5,11 @@ Tests the compute_session_metrics function with various scenarios
 including key fragment coverage and risk detection timeliness.
 """
 
-import pytest
 from uuid import uuid4
 
-from app.core.tables import Case, Session, KBFragment, TelemetryTurn
+import pytest
+
+from app.core.tables import Case, KBFragment, Session, TelemetryTurn
 from app.eval.metrics import compute_session_metrics
 
 

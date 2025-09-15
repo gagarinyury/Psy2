@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy import select, text
+
 from app.cli.case_loader import load_case_from_file
 from app.core.db import AsyncSessionLocal
 from app.core.tables import Case, KBFragment

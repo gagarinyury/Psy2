@@ -10,9 +10,11 @@ import logging
 from pathlib import Path
 from typing import Dict, List
 
+from app.infra.tracing import get_tracer
 from app.llm.deepseek_client import DeepSeekClient
 
 logger = logging.getLogger(__name__)
+tracer = get_tracer(__name__)
 
 
 def _load_generation_prompt() -> str:
@@ -28,7 +30,10 @@ def _load_generation_prompt() -> str:
             return f.read().strip()
     except Exception as e:
         logger.error(f"Failed to load generation prompt: {e}")
-        return "You are a digital patient. Generate a natural response based on the content plan and style directives provided."
+        return (
+            "You are a digital patient. Generate a natural response based on the "
+            "content plan and style directives provided."
+        )
 
 
 def _create_fallback_response(content_plan: List[str]) -> str:
@@ -84,8 +89,13 @@ async def generate_llm(
         )
 
         # Call DeepSeek API
-        async with DeepSeekClient() as client:
-            response = await client.generate(messages, temperature=0.7, max_tokens=200)
+        with tracer.start_as_current_span("llm.generation") as span:
+            span.set_attribute("llm.model", "deepseek-generation")
+            span.set_attribute("llm.task", "generation")
+            span.set_attribute("input.content_plan_items", len(content_plan))
+
+            async with DeepSeekClient() as client:
+                response = await client.generate(messages, temperature=0.7, max_tokens=200)
 
         # Extract response content
         if not response.get("choices") or not response["choices"]:

@@ -15,12 +15,12 @@ from typing import Any, Dict
 
 import click
 import httpx
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 
-from app.core.db import AsyncSessionLocal
-from app.core.tables import Case, KBFragment, Session, TelemetryTurn
 from app.cli.case_loader import load_case_from_file
+from app.core.db import AsyncSessionLocal
 from app.core.settings import settings
+from app.core.tables import Case, KBFragment, Session, TelemetryTurn
 from app.kb.embeddings import run_embed
 
 # Setup minimal logging that goes to stderr, not stdout
@@ -31,8 +31,8 @@ logger = logging.getLogger(__name__)
 def setup_silent_mode():
     """Подавляет все логи для json-only режима"""
     import logging
-    import sys
     import os
+    import sys
 
     # Отключаем все логи
     logging.getLogger().setLevel(logging.CRITICAL + 1)

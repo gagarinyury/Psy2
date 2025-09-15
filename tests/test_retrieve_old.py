@@ -8,15 +8,16 @@
 - Обработка edge cases (несуществующий case_id, пустая БД)
 """
 
-import pytest
+import json
 import uuid
 from pathlib import Path
+
+import pytest
 from sqlalchemy import delete
 
+from app.cli.case_loader import load_case
 from app.core.tables import Case, KBFragment, Session, TelemetryTurn
 from app.orchestrator.nodes.retrieve import retrieve
-from app.cli.case_loader import load_case
-import json
 
 
 async def setup_test_data(db):

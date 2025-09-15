@@ -3,16 +3,16 @@ Retrieve node for knowledge base fragment retrieval.
 Filters fragments based on access permissions, topics, and adds noise for realism.
 """
 
-import random
 import logging
+import random
 
-from sqlalchemy import select, and_, or_, text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, or_, select, text
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.settings import settings
 from app.core.tables import KBFragment
 from app.kb.embeddings import embed_fragment_text
-from app.core.settings import settings
 
 logger = logging.getLogger(__name__)
 

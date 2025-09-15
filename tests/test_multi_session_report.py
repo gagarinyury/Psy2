@@ -14,7 +14,7 @@ import uuid
 
 import pytest
 
-from app.core.tables import KBFragment, TelemetryTurn, SessionTrajectory
+from app.core.tables import KBFragment, SessionTrajectory, TelemetryTurn
 from app.eval.metrics import compute_session_metrics
 
 

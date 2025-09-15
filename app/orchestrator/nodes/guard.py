@@ -3,8 +3,8 @@ Guard node for orchestrator pipeline.
 Filters and modifies content based on risk flags to ensure safe therapeutic responses.
 """
 
-import logging
 import copy
+import logging
 
 logger = logging.getLogger(__name__)
 

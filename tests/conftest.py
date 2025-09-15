@@ -6,6 +6,11 @@ from app.core.db import AsyncSessionLocal
 from app.main import app as fastapi_app
 
 
+@pytest.fixture(scope="session")
+def anyio_backend():
+    return "asyncio"
+
+
 @pytest.fixture(scope="function")
 def app() -> FastAPI:
     return fastapi_app

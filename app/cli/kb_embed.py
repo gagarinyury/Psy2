@@ -9,17 +9,17 @@ CLI для batch обработки эмбеддингов knowledge base фра
 import asyncio
 import sys
 import uuid
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import click
 import numpy as np
-from sqlalchemy import select, update, func
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import AsyncSessionLocal
 from app.core.tables import KBFragment
+from app.infra.logging import get_logger, setup_logging
 from app.kb.embeddings import embed_fragments_batch
-from app.infra.logging import setup_logging, get_logger
 
 # Setup logging
 setup_logging()

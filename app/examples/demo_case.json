@@ -6,7 +6,26 @@
       "ddx": {"MDD": 0.6, "GAD": 0.3, "AUD": 0.1},
       "hidden_facts": ["эпизод в 2016", "семейная история депрессии"],
       "red_flags": ["суицидальные мысли"],
-      "trajectories": ["улучшение при поддержке"]
+      "trajectories": [
+        {
+          "id": "traj_1",
+          "name": "улучшение при поддержке",
+          "steps": [
+            {
+              "id": "step_1",
+              "name": "установить доверие",
+              "condition_tags": ["работа", "семья"],
+              "min_trust": 0.3
+            },
+            {
+              "id": "step_2",
+              "name": "обсудить симптомы",
+              "condition_tags": ["insomnia"],
+              "min_trust": 0.5
+            }
+          ]
+        }
+      ]
     },
     "policies": {
       "disclosure_rules": {

@@ -8,9 +8,11 @@
 - Обработка edge cases (несуществующий case_id, пустая БД)
 """
 
-import pytest
 import uuid
+
+import pytest
 from sqlalchemy import text
+
 from app.core.db import AsyncSessionLocal
 from app.core.tables import Case, KBFragment
 from app.orchestrator.nodes.retrieve import retrieve

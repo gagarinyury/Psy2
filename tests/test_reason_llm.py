@@ -1,11 +1,12 @@
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 
 from app.orchestrator.nodes.reason_llm import (
-    reason_llm,
     _create_fallback_response,
     _truncate_candidates,
+    reason_llm,
 )
 
 

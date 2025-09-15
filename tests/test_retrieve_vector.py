@@ -3,8 +3,10 @@
 Проверяет оба режима работы: векторный и metadata-based.
 """
 
-import pytest
 import uuid
+
+import pytest
+
 from app.core.db import AsyncSessionLocal
 from app.core.tables import Case, KBFragment
 from app.orchestrator.nodes.retrieve import retrieve

@@ -6,15 +6,15 @@ Coordinates normalize and retrieve nodes to generate patient responses.
 import logging
 import uuid
 from typing import Any
-from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.models import TurnRequest, TurnResponse, CaseTruth, Trajectory, TrajectoryStep
+from app.core.models import CaseTruth, TurnRequest, TurnResponse
 from app.core.settings import settings
-from app.core.tables import Case, Session, TelemetryTurn, SessionTrajectory, KBFragment
+from app.core.tables import Case, KBFragment, Session, SessionTrajectory, TelemetryTurn
+from app.infra.tracing import get_tracer
 from app.orchestrator.nodes.generate_llm import generate_llm
 from app.orchestrator.nodes.guard import guard
 from app.orchestrator.nodes.normalize import normalize
@@ -23,6 +23,7 @@ from app.orchestrator.nodes.reason_llm import reason_llm
 from app.orchestrator.nodes.retrieve import retrieve
 
 logger = logging.getLogger(__name__)
+tracer = get_tracer(__name__)
 
 
 async def get_case_truth(db: AsyncSession, case_id: str) -> dict:
@@ -186,120 +187,126 @@ async def run_turn(request: TurnRequest, db: AsyncSession) -> TurnResponse:
         ValueError: If session doesn't exist or invalid input
         SQLAlchemyError: Database operation errors
     """
-    try:
-        # Verify session exists
-        session_query = select(Session).where(Session.id == request.session_id)
-        session_result = await db.execute(session_query)
-        session = session_result.scalar_one_or_none()
+    with tracer.start_as_current_span("pipeline.turn") as span:
+        # Add span attributes for tracing context
+        span.set_attribute("session.id", request.session_id)
+        span.set_attribute("case.id", request.case_id)
+        span.set_attribute("session.trust", request.session_state.trust)
 
-        if not session:
-            raise ValueError(f"Session {request.session_id} not found")
+        try:
+            # Verify session exists
+            session_query = select(Session).where(Session.id == request.session_id)
+            session_result = await db.execute(session_query)
+            session = session_result.scalar_one_or_none()
 
-        # Convert session state to dict for pipeline nodes
-        session_state_dict = request.session_state.model_dump()
+            if not session:
+                raise ValueError(f"Session {request.session_id} not found")
 
-        # Step 1: Get policies first to pass to normalize
-        policies = await get_policies(db, request.case_id)
+            # Convert session state to dict for pipeline nodes
+            session_state_dict = request.session_state.model_dump()
 
-        # Step 2: Normalize therapist utterance with policies
-        n = normalize(request.therapist_utterance, session_state_dict, policies)
+            # Step 1: Get policies first to pass to normalize
+            policies = await get_policies(db, request.case_id)
 
-        # Step 3: Retrieve relevant knowledge fragments
-        cands = await retrieve(
-            db=db,
-            case_id=request.case_id,
-            intent=n["intent"],
-            topics=n["topics"],
-            session_state_compact=session_state_dict,
-        )
+            # Step 2: Normalize therapist utterance with policies
+            n = normalize(request.therapist_utterance, session_state_dict, policies)
 
-        # Step 4: Reason - get case_truth (policies already loaded)
-        case_truth = await get_case_truth(db, request.case_id)
+            # Step 3: Retrieve relevant knowledge fragments
+            cands = await retrieve(
+                db=db,
+                case_id=request.case_id,
+                intent=n["intent"],
+                topics=n["topics"],
+                session_state_compact=session_state_dict,
+            )
 
-        # Use LLM reasoning if enabled, otherwise use stub
-        if settings.USE_DEEPSEEK_REASON:
-            try:
-                r = await reason_llm(case_truth, session_state_dict, cands, policies)
-                logger.info("Used DeepSeek reasoning")
-            except Exception as e:
-                logger.error(f"DeepSeek reasoning failed, falling back to stub: {e}")
+            # Step 4: Reason - get case_truth (policies already loaded)
+            case_truth = await get_case_truth(db, request.case_id)
+
+            # Use LLM reasoning if enabled, otherwise use stub
+            if settings.USE_DEEPSEEK_REASON:
+                try:
+                    r = await reason_llm(case_truth, session_state_dict, cands, policies)
+                    logger.info("Used DeepSeek reasoning")
+                except Exception as e:
+                    logger.error(f"DeepSeek reasoning failed, falling back to stub: {e}")
+                    r = reason(case_truth, session_state_dict, cands, policies)
+            else:
                 r = reason(case_truth, session_state_dict, cands, policies)
-        else:
-            r = reason(case_truth, session_state_dict, cands, policies)
 
-        # Step 5: Guard - apply risk filtering
-        g = guard(r, policies, n["risk_flags"])
+            # Step 5: Guard - apply risk filtering
+            g = guard(r, policies, n["risk_flags"])
 
-        # Step 6: Form response
-        if settings.USE_DEEPSEEK_GEN:
-            try:
-                # Use LLM generation for natural patient response
-                content_plan = g["safe_output"]["content_plan"]
-                style_directives = g["safe_output"]["style_directives"]
-                patient_context = f"Patient with {case_truth.get('dx_target', ['unknown condition'])[0]}"
+            # Step 6: Form response
+            if settings.USE_DEEPSEEK_GEN:
+                try:
+                    # Use LLM generation for natural patient response
+                    content_plan = g["safe_output"]["content_plan"]
+                    style_directives = g["safe_output"]["style_directives"]
+                    patient_context = f"Patient with {case_truth.get('dx_target', ['unknown condition'])[0]}"
 
-                patient_reply = await generate_llm(
-                    content_plan, style_directives, patient_context
-                )
-                logger.info("Used DeepSeek generation")
-            except Exception as e:
-                logger.error(
-                    f"DeepSeek generation failed, falling back to plan format: {e}"
-                )
+                    patient_reply = await generate_llm(
+                        content_plan, style_directives, patient_context
+                    )
+                    logger.info("Used DeepSeek generation")
+                except Exception as e:
+                    logger.error(
+                        f"DeepSeek generation failed, falling back to plan format: {e}"
+                    )
+                    patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status']=='acute' else 'none'}"
+            else:
                 patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status']=='acute' else 'none'}"
-        else:
-            patient_reply = f"Plan:{len(g['safe_output']['content_plan'])} intent={n['intent']} risk={'acute' if g['risk_status']=='acute' else 'none'}"
 
-        # State updates - combine from reason and normalize
-        state_updates = r["state_updates"] | {
-            "last_turn_summary": n["last_turn_summary"]
-        }
+            # State updates - combine from reason and normalize
+            state_updates = r["state_updates"] | {
+                "last_turn_summary": n["last_turn_summary"]
+            }
 
-        # Fragment IDs from reason telemetry
-        used_fragments = r["telemetry"].get("chosen_ids", [])
+            # Fragment IDs from reason telemetry
+            used_fragments = r["telemetry"].get("chosen_ids", [])
 
-        # Risk status from guard
-        risk_status = g["risk_status"]
+            # Risk status from guard
+            risk_status = g["risk_status"]
 
-        # Eval markers - include topics for enhanced evaluation
-        eval_markers = {"intent": n["intent"], "topics": n["topics"]}
+            # Eval markers - include topics for enhanced evaluation
+            eval_markers = {"intent": n["intent"], "topics": n["topics"]}
 
-        # Step 7: Record telemetry
-        await _record_telemetry(
-            db=db,
-            session_id=request.session_id,
-            used_fragments=used_fragments,
-            risk_status=risk_status,
-            eval_markers=eval_markers,
-        )
+            # Step 7: Record telemetry
+            await _record_telemetry(
+                db=db,
+                session_id=request.session_id,
+                used_fragments=used_fragments,
+                risk_status=risk_status,
+                eval_markers=eval_markers,
+            )
 
-        # Step 8: Update trajectory progress
-        await update_trajectory_progress(
-            db=db,
-            session_id=request.session_id,
-            case_truth=case_truth,
-            session_state_trust=request.session_state.trust,
-            used_fragments=used_fragments,
-        )
+            # Step 8: Update trajectory progress
+            await update_trajectory_progress(
+                db=db,
+                session_id=request.session_id,
+                case_truth=case_truth,
+                session_state_trust=request.session_state.trust,
+                used_fragments=used_fragments,
+            )
 
-        return TurnResponse(
-            patient_reply=patient_reply,
-            state_updates=state_updates,
-            used_fragments=used_fragments,
-            risk_status=risk_status,
-            eval_markers=eval_markers,
-        )
+            return TurnResponse(
+                patient_reply=patient_reply,
+                state_updates=state_updates,
+                used_fragments=used_fragments,
+                risk_status=risk_status,
+                eval_markers=eval_markers,
+            )
 
-    except Exception as e:
-        logger.error(f"Pipeline error: {e}")
-        # Safe fallback response
-        return TurnResponse(
-            patient_reply="safe-fallback",
-            state_updates={},
-            used_fragments=[],
-            risk_status="none",
-            eval_markers={},
-        )
+        except Exception as e:
+            logger.error(f"Pipeline error: {e}")
+            # Safe fallback response
+            return TurnResponse(
+                patient_reply="safe-fallback",
+                state_updates={},
+                used_fragments=[],
+                risk_status="none",
+                eval_markers={},
+            )
 
 
 async def _record_telemetry(

@@ -4,8 +4,9 @@ Tests for reason_llm JSON parsing integration.
 Tests LLM response parsing with different content formats using mocked DeepSeekClient.
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 
 from app.orchestrator.nodes.reason_llm import reason_llm
 

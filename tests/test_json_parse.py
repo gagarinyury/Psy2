@@ -5,10 +5,11 @@ Tests pure functions without async, following specification scenarios.
 """
 
 import pytest
+
 from app.llm.json_parse import (
     extract_json_blocks,
-    parse_llm_json,
     normalize_reason_payload,
+    parse_llm_json,
 )
 
 

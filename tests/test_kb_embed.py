@@ -1,17 +1,18 @@
-import pytest
-import numpy as np
 import uuid
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import numpy as np
+import pytest
 from sqlalchemy import select
+
+from app.cli.kb_embed import get_fragments_for_embedding, process_embeddings_for_case
 from app.core.db import AsyncSessionLocal
 from app.core.tables import Case, KBFragment
 from app.kb.embeddings import (
+    _compact_metadata,
     embed_fragment_text,
     embed_fragments_batch,
-    _compact_metadata,
 )
-from app.cli.kb_embed import process_embeddings_for_case, get_fragments_for_embedding
 
 
 class TestEmbeddings:

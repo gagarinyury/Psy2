@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+
 from app.core.settings import settings
 
 
@@ -58,6 +59,7 @@ async def test_runtime_mode_affects_turn_behavior(client: AsyncClient, setup_tes
         # Убеждаемся что у нас есть эмбеддинги для vector режима
         # (используем helper из smoke test)
         import uuid
+
         from app.kb.embeddings import run_embed
 
         await run_embed(uuid.UUID(case_id))

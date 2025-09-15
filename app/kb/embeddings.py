@@ -6,12 +6,12 @@
 """
 
 import uuid
-import numpy as np
-from typing import Dict, Any, List, Tuple
 from functools import lru_cache
+from typing import Any, Dict, List, Tuple
 
+import numpy as np
 from sentence_transformers import SentenceTransformer
-from sqlalchemy import select, update, func
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import AsyncSessionLocal

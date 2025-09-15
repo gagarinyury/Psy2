@@ -3,9 +3,11 @@
 """
 
 import asyncio
-import pytest
 import threading
+
+import pytest
 from sqlalchemy import text
+
 from app.core.db import AsyncSessionLocal, engine
 
 

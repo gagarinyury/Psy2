@@ -1,10 +1,11 @@
 import json
-import pytest
-import httpx
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from app.llm.deepseek_client import DeepSeekClient
+import httpx
+import pytest
+
 from app.core.settings import settings
+from app.llm.deepseek_client import DeepSeekClient
 
 
 @pytest.mark.anyio

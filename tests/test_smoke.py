@@ -5,6 +5,7 @@ Smoke test - интеграционный тест всей системы че�
 import json
 import subprocess
 import sys
+
 import pytest
 
 

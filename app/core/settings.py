@@ -1,4 +1,4 @@
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,6 +7,9 @@ class Settings(BaseSettings):
 
     # Application
     app_env: str = "dev"
+
+    # Logging
+    LOG_LEVEL: str = "INFO"
 
     # Database
     postgres_host: str = "postgres"
@@ -26,6 +29,7 @@ class Settings(BaseSettings):
 
     # OpenTelemetry
     otel_exporter: str = "none"
+    OTEL_EXPORTER_OTLP_ENDPOINT: str | None = None
 
     # RAG Vector Search Settings
     RAG_USE_VECTOR: bool = False  # Использовать векторный поиск вместо metadata
@@ -41,6 +45,18 @@ class Settings(BaseSettings):
     # Feature flags for LLM nodes
     USE_DEEPSEEK_REASON: bool = False  # Использовать DeepSeek для reasoning вместо stub
     USE_DEEPSEEK_GEN: bool = False  # Использовать DeepSeek для generation вместо stub
+
+    @field_validator('DEEPSEEK_API_KEY')
+    @classmethod
+    def validate_deepseek_api_key(cls, v, info):
+        """Validate DeepSeek API key when reasoning or generation features are enabled"""
+        use_reason = info.data.get('USE_DEEPSEEK_REASON', False)
+        use_gen = info.data.get('USE_DEEPSEEK_GEN', False)
+
+        if (use_reason or use_gen) and not v:
+            raise ValueError("DEEPSEEK_API_KEY is required when USE_DEEPSEEK_REASON or USE_DEEPSEEK_GEN is enabled")
+
+        return v
 
     @property
     def database_url(self) -> str:

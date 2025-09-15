@@ -1,4 +1,5 @@
 import pytest
+
 from app.orchestrator.nodes.normalize import normalize
 
 

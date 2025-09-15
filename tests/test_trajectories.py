@@ -7,7 +7,7 @@ and GET /session/{session_id}/trajectory endpoint.
 
 import pytest
 
-from app.core.tables import KBFragment, TelemetryTurn, SessionTrajectory
+from app.core.tables import KBFragment, SessionTrajectory, TelemetryTurn
 
 
 @pytest.mark.anyio

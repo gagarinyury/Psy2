@@ -17,9 +17,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import AsyncSessionLocal
-from app.core.tables import Case, KBFragment
 from app.core.policies import Policies
-from app.infra.logging import setup_logging, get_logger
+from app.core.tables import Case, KBFragment
+from app.infra.logging import get_logger, setup_logging
 
 # Setup logging
 setup_logging()
@@ -235,8 +235,9 @@ def load(file_path: str):
     FILE_PATH: Путь к JSON файлу со случаем
     """
     try:
-        asyncio.run(load_case_from_file(file_path))
+        case_id = asyncio.run(load_case_from_file(file_path))
         click.echo(f"✓ Case loaded successfully from {file_path}")
+        click.echo(f"Case ID: {case_id}")
     except CaseLoaderError as e:
         logger.error("Case loading failed", error=str(e))
         click.echo(f"✗ Error: {e}", err=True)

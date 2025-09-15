@@ -266,3 +266,108 @@ curl -s -X POST :8000/admin/llm_flags -H 'content-type: application/json' -d '{}
 - Telemetry collection and metrics reporting
 - Policy validation and enforcement
 - LLM reasoning and generation behind feature flags
+
+## Production-Ready E2E Testing
+
+### Quick E2E Test
+
+Full end-to-end regression test from clean Docker startup to complete therapy session:
+
+```bash
+# One-command full system test
+chmod +x scripts/e2e.sh
+./scripts/e2e.sh
+```
+
+### What the E2E Test Does
+
+1. **🧹 Clean Environment**: Stops and rebuilds all Docker services
+2. **🏥 Health Checks**: Verifies API availability
+3. **🗄️ Database Setup**: Runs Alembic migrations
+4. **📄 Demo Case**: Loads demo case with proper trajectories
+5. **🔍 Vector Mode**: Enables vector search for KB retrieval
+6. **🎭 Session Flow**: Creates therapy session
+7. **💬 Multi-Turn Dialog**: Tests 3 conversation turns:
+   - Turn 1: Sleep inquiry (risk=none)
+   - Turn 2: Suicide risk question (risk=acute)
+   - Turn 3: Natural language with LLM generation
+8. **📊 Reports**: Validates trajectory progress and session metrics
+9. **🛡️ Rate Limiting**: Tests API protection mechanisms
+
+### Expected Results
+
+```bash
+✅ Docker services started
+✅ Database migrations applied
+✅ Demo case loaded (ID: uuid)
+✅ Vector search enabled
+✅ Therapy session created (ID: uuid)
+✅ 3 conversation turns completed
+✅ Risk assessment working (none → acute)
+✅ Natural language generation enabled
+✅ Trajectory tracking functional
+✅ Reports generated
+✅ Rate limiting tested
+```
+
+### Manual Production Testing
+
+If you prefer step-by-step manual testing:
+
+```bash
+# 1. Clean start
+docker compose down -v
+docker build -t rag-patient:local .
+docker compose up -d
+
+# 2. Health check
+curl -sf "http://localhost:8000/health" | jq .
+
+# 3. Run migrations
+docker compose exec -T app alembic upgrade head
+
+# 4. Load demo case (extract proper format)
+CASE_REQUEST=$(jq '.case | {case_truth: .case_truth, policies: .policies}' app/examples/demo_case.json)
+CASE_ID=$(echo "$CASE_REQUEST" | curl -sf -X POST "http://localhost:8000/case" -H "content-type: application/json" -d @- | jq -r .case_id)
+
+# 5. Enable vector search
+curl -sf -X POST "http://localhost:8000/admin/rag_mode" -H "content-type: application/json" -d '{"use_vector":true}' | jq .
+
+# 6. Create session
+SESSION_ID=$(curl -sf -X POST "http://localhost:8000/session" -H "content-type: application/json" -d "{\"case_id\":\"${CASE_ID}\"}" | jq -r .session_id)
+
+# 7. Test conversation turns
+curl -sf -X POST "http://localhost:8000/turn" \
+  -H "content-type: application/json" \
+  -H "X-Session-ID: ${SESSION_ID}" \
+  -d '{
+    "therapist_utterance": "Как вы спите последние недели?",
+    "session_state": {"affect": "neutral", "trust": 0.5, "fatigue": 0.1, "access_level": 1, "risk_status": "none", "last_turn_summary": ""},
+    "case_id": "'${CASE_ID}'", "session_id": "'${SESSION_ID}'", "options": {}
+  }' | jq .
+
+# 8. Check reports
+curl -sf "http://localhost:8000/report/session/${SESSION_ID}" | jq .
+curl -sf "http://localhost:8000/report/case/${CASE_ID}/trajectories" | jq .
+```
+
+### Service URLs After Startup
+
+- **API**: http://localhost:8000 (OpenAPI docs at /docs)
+- **Grafana**: http://localhost:3000 (admin/admin)
+- **Prometheus**: http://localhost:9090
+- **PostgreSQL**: localhost:5432 (rag/ragpass@rag_patient)
+- **Redis**: localhost:6379
+
+### Cleanup
+
+```bash
+# Stop and remove all containers with volumes
+docker compose down -v
+```
+
+### Requirements
+
+- **Docker** & **Docker Compose**
+- **jq** (JSON processor): `brew install jq` / `apt install jq`
+- **curl** (HTTP client)

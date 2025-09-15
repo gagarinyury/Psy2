@@ -1,7 +1,8 @@
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.orchestrator.nodes.generate_llm import generate_llm, _create_fallback_response
+import pytest
+
+from app.orchestrator.nodes.generate_llm import _create_fallback_response, generate_llm
 
 
 @pytest.mark.anyio

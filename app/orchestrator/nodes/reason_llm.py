@@ -10,11 +10,13 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
+from app.infra.tracing import get_tracer
 from app.llm.deepseek_client import DeepSeekClient
-from app.llm.json_parse import parse_llm_json, normalize_reason_payload
+from app.llm.json_parse import normalize_reason_payload, parse_llm_json
 from app.llm.validate import validate_reason_payload
 
 logger = logging.getLogger(__name__)
+tracer = get_tracer(__name__)
 
 
 def _load_reasoning_prompt() -> str:
@@ -27,7 +29,10 @@ def _load_reasoning_prompt() -> str:
             return f.read().strip()
     except Exception as e:
         logger.error(f"Failed to load reasoning prompt: {e}")
-        return "You are a therapeutic reasoning system. Analyze the input and return JSON with content_plan, style_directives, state_updates, and telemetry."
+        return (
+            "You are a therapeutic reasoning system. Analyze the input and return JSON "
+            "with content_plan, style_directives, state_updates, and telemetry."
+        )
 
 
 def _truncate_candidates(
@@ -112,10 +117,15 @@ async def reason_llm(
         )
 
         # Call DeepSeek API
-        async with DeepSeekClient() as client:
-            response = await client.reasoning(
-                messages, temperature=0.3, max_tokens=1000
-            )
+        with tracer.start_as_current_span("llm.reasoning") as span:
+            span.set_attribute("llm.model", "deepseek-reasoning")
+            span.set_attribute("llm.task", "reasoning")
+            span.set_attribute("input.candidates_count", len(candidates))
+
+            async with DeepSeekClient() as client:
+                response = await client.reasoning(
+                    messages, temperature=0.3, max_tokens=1000
+                )
 
         # Extract response content
         if not response.get("choices") or not response["choices"]:

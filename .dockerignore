@@ -1,0 +1,9 @@
+.git
+**/__pycache__
+**/*.pyc
+*.log
+pytest.cache
+.env
+.mypy_cache
+.venv
+poetry.lock

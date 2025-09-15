@@ -13,8 +13,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.tables import KBFragment, Session, SessionTrajectory, Case
 from app.core.models import Trajectory
+from app.core.tables import Case, KBFragment, Session, SessionTrajectory
 
 
 async def compute_session_metrics(db: AsyncSession, session_id: UUID) -> Dict[str, Any]:

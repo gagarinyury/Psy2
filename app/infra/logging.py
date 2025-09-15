@@ -1,5 +1,8 @@
 import sys
+
 from loguru import logger
+
+from app.core.settings import settings
 
 
 def setup_logging():
@@ -11,7 +14,7 @@ def setup_logging():
     logger.add(
         sys.stdout,
         format="{time} | {level} | {name}:{function}:{line} | {message}",
-        level="INFO",
+        level=settings.LOG_LEVEL,
         serialize=True,  # This enables JSON output
         backtrace=True,
         diagnose=True,

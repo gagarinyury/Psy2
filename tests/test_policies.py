@@ -1,17 +1,19 @@
-import pytest
-import tempfile
 import json
 import os
+import tempfile
+
+import pytest
 from sqlalchemy import select
-from app.cli.case_loader import load_case_from_file, CaseLoaderError, load_case
+
+from app.cli.case_loader import CaseLoaderError, load_case, load_case_from_file
 from app.core.db import AsyncSessionLocal
-from app.core.tables import Case, KBFragment
 from app.core.policies import (
+    DisclosureRules,
+    effective_disclosure_level,
     gated_access_allowed,
     is_risk_trigger,
-    effective_disclosure_level,
-    DisclosureRules,
 )
+from app.core.tables import Case, KBFragment
 
 
 @pytest.mark.anyio
